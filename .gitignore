@@ -1,0 +1,17 @@
+# Dependências
+node_modules/
+.next/
+dist/
+build/
+*.log
+
+# Ambiente e Dados
+.env
+.env.local
+backend/__pycache__/
+backend/venv/
+backend/rankhub.db
+
+# Sistema
+.DS_Store
+Thumbs.db
