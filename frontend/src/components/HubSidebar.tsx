@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { getApiUrl } from '@/lib/api';
 
 export default function HubSidebar() {
   const pathname = usePathname();
@@ -14,7 +15,7 @@ export default function HubSidebar() {
 
   useEffect(() => {
     if (user) {
-      fetch(`http://127.0.0.1:5000/api/user/${user.id}/invites`)
+      fetch(getApiUrl(`user/${user.id}/invites`))
         .then(res => res.json())
         .then(data => setInviteCount(data.length))
         .catch(err => console.error("Erro ao buscar convites:", err));
