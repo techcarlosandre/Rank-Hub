@@ -18,13 +18,15 @@ except ImportError:
     RealDictCursor = None
 from datetime import datetime
 load_dotenv()
+@app.route('/health')
 @app.route('/api/health')
 def health_check():
     db_url = os.getenv("POSTGRES_URL") or os.getenv("DATABASE_URL")
     return jsonify({
         'status': 'online',
         'database_env_found': bool(db_url),
-        'environment': 'production' if os.getenv('VERCEL') else 'development'
+        'flask_version': '3.0.0',
+        'psycopg2_found': psycopg2 is not None
     }), 200
 
 gemini_api_key = os.getenv("GEMINI_API_KEY")
@@ -973,10 +975,17 @@ def generate_rules():
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
-try:
-    init_db()
-except Exception as e:
-    print(f"Erro Crítico no init_db: {e}")
+_db_initialized = False
+
+@app.before_request
+def auto_init_db():
+    global _db_initialized
+    if not _db_initialized:
+        try:
+            init_db()
+            _db_initialized = True
+        except Exception as e:
+            print(f"Erro na inicialização automática: {e}")
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
