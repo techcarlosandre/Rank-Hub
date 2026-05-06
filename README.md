@@ -1,94 +1,85 @@
-# 🏆 Rank&Hub | Ecossistema de Rankings & Gamificação
+# 🚀 Rank&Hub - Ecossistema Gamificado de Rankings
 
 <div align="center">
-  <img src="frontend/public/readme/logo.png" width="400px" alt="Rank&Hub Logo">
-  <br/>
-  <h3>O Centro da sua Evolução.</h3>
-  <p><b>Acesse agora:</b> <a href="https://rankehub.vercel.app">rankehub.vercel.app</a></p>
+  <img src="public/img/logo.png" width="200px" alt="Rank&Hub Logo" />
+  <p><i>Transforme metas em competição, engajamento e resultados extraordinários.</i></p>
+
+  <br />
+
+  [![Live Demo](https://img.shields.io/badge/Demo-Acesse%20Agora-000?style=for-the-badge&logo=vercel&logoColor=white)](https://rankhub.vercel.app)
+  [![Deploy to Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Ftechcarlosandre%2FRank-Hub&env=GEMINI_API_KEY,EMAIL_USER,EMAIL_PASS,POSTGRES_URL&envDescription=Configura%C3%A7%C3%B5es%20necess%C3%A1rias%20para%20o%20funcionamento%20do%20SaaS.&project-name=rank-hub&repository-name=rank-hub)
 </div>
 
 ---
 
-## 📖 O que é o Rank&Hub?
+## 📸 Demonstração do Ecossistema
 
-O **Rank&Hub** é uma plataforma SaaS premium projetada para transformar qualquer competição ou acompanhamento de progresso em uma experiência épica. Combinando design de elite, inteligência artificial e gamificação agressiva, o sistema permite criar rankings personalizados, gerenciar tarefas e engajar membros em um ambiente de alta performance.
-
----
-
-## 📸 Screenshots
-
+### 🏆 Dashboard de Rankings & Competição Ativa
+Acompanhe o progresso em tempo real com uma interface gamificada, badges de conquistas e pódios dinâmicos.
 <div align="center">
-  <h3>Identity & Auth</h3>
-  <img src="frontend/public/readme/rankhub_login_preview.png" width="800px" alt="Login Page">
-  <p><i>Interface de autenticação com logo dinâmica e efeitos de orbital glow.</i></p>
-  
-  <br/>
-  
-  <h3>Dashboard Central</h3>
-  <img src="frontend/public/readme/rankhub_dashboard_preview.png" width="800px" alt="Dashboard">
-  <p><i>Visão geral do ecossistema, estatísticas globais e criação com IA.</i></p>
+  <img src="public/readme/dashboard_1.png" width="45%" />
+  <img src="public/readme/dashboard_2.png" width="45%" />
+</div>
 
-  <br/>
+<br />
 
-  <h3>Arenas de Competição</h3>
-  <img src="frontend/public/readme/rankhub_ranking_preview.png" width="800px" alt="Ranking Page">
-  <p><i>Tabela de pontuação em tempo real com sistema de patentes e histórico.</i></p>
+### 🤖 Inteligência Artificial & Regras Customizadas
+Utilize o poder do Google Gemini para criar regras de pontuação complexas e personalizadas para qualquer tipo de competição.
+<div align="center">
+  <img src="public/readme/regras_ai.png" width="45%" />
+  <img src="public/readme/configuracoes.png" width="45%" />
+</div>
+
+<br />
+
+### 📱 Experiência Mobile & Gestão de Membros
+Expanda sua comunidade com convites rápidos, gestão de permissões e uma interface totalmente responsiva.
+<div align="center">
+  <img src="public/readme/mobile_view.png" width="45%" />
+  <img src="public/readme/membros.png" width="45%" />
 </div>
 
 ---
 
-## 🚀 Tecnologias Utilizadas
+## ✨ Diferenciais do Projeto
 
-O projeto utiliza o que há de mais moderno no desenvolvimento full-stack:
-
-### **Frontend**
-- **Next.js 15 (App Router)**: SSR e roteamento avançado.
-- **Tailwind CSS**: Estilização atômica para performance máxima.
-- **Framer Motion**: Micro-interações e animações premium.
-- **Context API**: Gestão de estado global (Auth, Temas, UI).
-
-### **Backend & AI**
-- **Python / Flask**: API robusta e escalável.
-- **Google Gemini 2.5 AI**: Inteligência artificial integrada para automatizar a criação de regras e rankings.
-- **SQLite**: Banco de dados relacional para persistência de dados.
-- **SMTP Gmail**: Sistema de e-mails transacionais de boas-vindas.
+- **Gamificação Premium:** Design focado em retenção e engajamento, utilizando mecânicas de jogos para o mundo real.
+- **Inteligência Artificial Integrada:** Sugestão de nomes, descrições e regras de pontuação via Gemini AI.
+- **Backend Híbrido:** Arquitetura preparada para rodar localmente com SQLite ou em escala com PostgreSQL (Neon).
+- **Sistema de Notificações:** Automação de e-mails de boas-vindas e alertas de competição via SMTP.
+- **Segurança & Permissões:** Diferenciação clara entre Admin (Criador), Moderadores e Membros.
 
 ---
 
-## 💎 Diferenciais do Projeto
+## 🌟 Showcase Tecnológico (Modo SaaS)
 
-### 🛠️ **Arquitetura Clean Code**
-- **Classes Semânticas (PT-BR)**: Refatoração completa para classes como `.barra-topo`, `.painel-lateral`, facilitando a leitura e manutenção.
-- **Modularização**: Componentes reutilizáveis e lógicas separadas por contextos.
+Este repositório demonstra a implementação de um SaaS (Software as a Service) moderno e escalável:
 
-### ✨ **Experiência do Usuário (UX)**
-- **Logo Dinâmica**: Ícone SVG customizado com animação de pulso.
-- **Saudações Inteligentes**: Sistema que reconhece novos usuários e dá as boas-vindas personalizadas.
-- **Segurar para Sair**: Sistema de segurança que exige segurar o botão de saída para evitar perda acidental de progresso.
+- **Arquitetura Unificada:** Frontend e Backend integrados na mesma infraestrutura Vercel para latência zero.
+- **Banco de Dados Relacional:** Migração transparente de SQLite para PostgreSQL para persistência robusta em nuvem.
+- **Clean Code & UX:** Componentes reutilizáveis e animações fluidas com Framer Motion.
+- **Pronto para Produção:** Configurações de SEO, metadados e roteamento avançado implementados.
 
----
-
-## 🔗 Como Acessar
-
-Atualmente, o projeto está em modo de demonstração pública através do link oficial. Todo o gerenciamento de dados é feito em tempo real.
-
-**🔗 Link Oficial:** [https://rankehub.vercel.app](https://rankehub.vercel.app)
+<div align="center">
+  <img src="public/readme/demo_showcase.png" width="600px" />
+  <p><i>Interface moderna e intuitiva projetada para maximizar a performance do usuário.</i></p>
+</div>
 
 ---
 
-## 👨‍💻 Autor
+## 🛠️ Stack Tecnológica
 
-**Carlos André** — *Especialista em Soluções SaaS*
-
-Desenvolvido com foco em alta performance e design state-of-the-art. 
+- **Frontend:** [Next.js 15+](https://nextjs.org/) (App Router)
+- **Backend:** [Python Flask](https://flask.palletsprojects.com/)
+- **AI Engine:** [Google Gemini AI](https://ai.google.dev/)
+- **Database:** [PostgreSQL (Neon)](https://neon.tech/) & [SQLite](https://www.sqlite.org/)
+- **Styling:** [Vanilla CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) & [Framer Motion](https://www.framer.com/motion/)
+- **State Management:** React Context API & Hooks
 
 ---
 
-## 📧 Contato Comercial & Desenvolvedor
+## 📧 Contato & Redes
 
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/techcarlosandre/)
+Desenvolvido por **Carlos André**  
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/devcarlosandre/)
 [![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/techcarlosandre)
-[![WhatsApp](https://img.shields.io/badge/WhatsApp-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)](https://wa.me/5521982665121)
-
----
-*© 2026 Rank&Hub - O Centro da sua Evolução.*
