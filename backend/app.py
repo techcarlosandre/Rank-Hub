@@ -305,34 +305,42 @@ def login():
     return jsonify({'error': 'E-mail ou senha incorretos'}), 401
 @app.route('/api/register', methods=['POST'])
 def register():
-    data = request.json
-    email = data.get('email')
-    nome = data.get('nome')
     conn = get_db_connection()
     try:
-        cursor = conn.cursor()
+        data = request.json
+        nome = data.get('nome')
+        email = data.get('email')
+        senha = data.get('senha')
+        
+        if not email or not nome or not senha:
+            return jsonify({'error': 'Todos os campos são obrigatórios'}), 400
+
+        user_exists = db_execute(conn, 'SELECT id FROM hub_usuarios WHERE email = ?', (email,)).fetchone()
+        if user_exists:
+            return jsonify({'error': 'Este e-mail já está cadastrado'}), 400
+            
+        foto_perfil = f"https://api.dicebear.com/7.x/avataaars/svg?seed={nome}"
         usuario_id = db_insert(conn, """
             INSERT INTO hub_usuarios (nome, email, senha, foto_perfil)
             VALUES (?, ?, ?, ?)
-        """, (
-            nome,
-            email,
-            data.get('senha'),
-            "https://api.dicebear.com/7.x/avataaars/svg?seed=" + nome
-        ))
+        """, (nome, email, senha, foto_perfil))
+
         convites = db_execute(conn, "SELECT ranking_id FROM hub_convites_pendentes WHERE email = ?", (email,)).fetchall()
         for convite in convites:
             try:
                 db_execute(conn, "INSERT INTO hub_membros (ranking_id, usuario_id) VALUES (?, ?)", (convite['ranking_id'], usuario_id))
-                print(f"Usuário {nome} vinculado automaticamente ao ranking {convite['ranking_id']} via convite pendente.")
-            except:
-                pass 
+            except Exception: pass 
+            
         db_execute(conn, "DELETE FROM hub_convites_pendentes WHERE email = ?", (email,))
         conn.commit()
-        send_welcome_email(email, nome)
-        return jsonify({'message': 'Usuário cadastrado com sucesso!'}), 201
+        
+        try:
+            send_welcome_email(email, nome)
+        except Exception: pass
+
+        return jsonify({'message': 'Usuário cadastrado com sucesso!', 'user_id': usuario_id}), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({'error': f'Erro no Servidor: {str(e)}'}), 500
     finally:
         conn.close()
 @app.route('/api/user/avatar', methods=['POST'])
@@ -955,6 +963,7 @@ def generate_rules():
         import traceback
         traceback.print_exc() 
         return jsonify({'error': str(e)}), 500
+init_db()
+
 if __name__ == '__main__':
-    init_db()
     app.run(debug=True, port=5000)
