@@ -1,7 +1,7 @@
 const isProd = process.env.NODE_ENV === 'production';
 
 export const API_BASE_URL = isProd 
-  ? '/api' 
+  ? '/_/backend/api' 
   : 'http://127.0.0.1:5000/api';
 
 export const getApiUrl = (path: string) => {
