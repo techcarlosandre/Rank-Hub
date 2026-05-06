@@ -126,9 +126,11 @@ def init_db():
         pass
         try:
             db_execute(conn, "SELECT favorito FROM hub_membros LIMIT 1")
-        except sqlite3.OperationalError:
+        except Exception:
             print(">>> MIGRACAO: Adicionando coluna 'favorito' em hub_membros")
-            db_execute(conn, "ALTER TABLE hub_membros ADD COLUMN favorito INTEGER DEFAULT 0")
+            try:
+                db_execute(conn, "ALTER TABLE hub_membros ADD COLUMN favorito INTEGER DEFAULT 0")
+            except Exception: pass
         conn.commit()
         print("Banco de Dados SQL inicializado/verificado.")
     except Exception as e:
@@ -150,7 +152,7 @@ def init_db():
             db_execute(conn, f"ALTER TABLE hub_rankings ADD COLUMN {nome_col} {tipo_col}")
             conn.commit()
             print(f"Coluna '{nome_col}' adicionada com sucesso.")
-        except sqlite3.OperationalError:
+        except Exception:
             pass
         except Exception:
             pass
@@ -174,9 +176,12 @@ def init_db():
         conn.commit()
     except:
         pass
-    db_execute(conn, """
+    is_sqlite = isinstance(conn, sqlite3.Connection)
+    pk_type = "INTEGER PRIMARY KEY AUTOINCREMENT" if is_sqlite else "SERIAL PRIMARY KEY"
+    
+    db_execute(conn, f"""
         CREATE TABLE IF NOT EXISTS hub_patentes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {pk_type},
             ranking_id INTEGER REFERENCES hub_rankings(id) ON DELETE CASCADE,
             nome TEXT NOT NULL,
             pontos_minimos INTEGER NOT NULL,
@@ -184,9 +189,10 @@ def init_db():
         )
     """)
     conn.commit()
-    db_execute(conn, """
+    
+    db_execute(conn, f"""
         CREATE TABLE IF NOT EXISTS hub_convites_pendentes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {pk_type},
             email TEXT NOT NULL,
             ranking_id INTEGER REFERENCES hub_rankings(id) ON DELETE CASCADE,
             data_convite DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -376,7 +382,7 @@ def get_rankings():
                 WHERE m.usuario_id = ?
                 ORDER BY m.favorito DESC, r.criado_em DESC
             """, (usuario_id,)).fetchall()
-        except sqlite3.OperationalError:
+        except Exception:
             rankings = db_execute(conn, """
                 SELECT r.*, 0 as favorito 
                 FROM hub_rankings r
@@ -492,7 +498,7 @@ def toggle_favorite(ranking_id):
         ranking_id = int(ranking_id)
         try:
             db_execute(conn, "SELECT favorito FROM hub_membros LIMIT 1")
-        except sqlite3.OperationalError:
+        except Exception:
             print(">>> MIGRACAO: Adicionando coluna 'favorito' em hub_membros")
             db_execute(conn, "ALTER TABLE hub_membros ADD COLUMN favorito INTEGER DEFAULT 0")
             conn.commit()
