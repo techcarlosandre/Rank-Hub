@@ -18,6 +18,15 @@ except ImportError:
     RealDictCursor = None
 from datetime import datetime
 load_dotenv()
+@app.route('/api/health')
+def health_check():
+    db_url = os.getenv("POSTGRES_URL") or os.getenv("DATABASE_URL")
+    return jsonify({
+        'status': 'online',
+        'database_env_found': bool(db_url),
+        'environment': 'production' if os.getenv('VERCEL') else 'development'
+    }), 200
+
 gemini_api_key = os.getenv("GEMINI_API_KEY")
 client = None
 if gemini_api_key:
