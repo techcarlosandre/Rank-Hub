@@ -3,17 +3,16 @@ import json
 import sqlite3
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app, resources={r"/api/*": {"origins": "*"}}) 
+
 from google import genai
 from dotenv import load_dotenv
 import psycopg2
 from psycopg2.extras import RealDictCursor
-
 from datetime import datetime
 load_dotenv()
-
-application = Flask(__name__)
-app = application # Mantenho a referência 'app' para evitar erros em outras partes do código
-CORS(application, resources={r"/api/*": {"origins": "*"}}) 
 
 gemini_api_key = os.getenv("GEMINI_API_KEY")
 client = None
