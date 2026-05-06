@@ -7,7 +7,19 @@ from flask_cors import CORS
 app = Flask(__name__)
 application = app
 handler = app
-CORS(app, resources={r"/api/*": {"origins": "*"}}) 
+
+class PrefixMiddleware(object):
+    def __init__(self, app, prefix=''):
+        self.app = app
+        self.prefix = prefix
+    def __call__(self, environ, start_response):
+        if environ['PATH_INFO'].startswith(self.prefix):
+            environ['PATH_INFO'] = environ['PATH_INFO'][len(self.prefix):]
+            environ['SCRIPT_NAME'] = self.prefix
+        return self.app(environ, start_response)
+
+app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/_/backend')
+CORS(app, resources={r"/*": {"origins": "*"}}) 
 from google import genai
 from dotenv import load_dotenv
 try:
@@ -20,6 +32,8 @@ from datetime import datetime
 load_dotenv()
 @app.route('/health')
 @app.route('/api/health')
+@app.route('/_/backend/health')
+@app.route('/_/backend/api/health')
 def health_check():
     db_url = os.getenv("POSTGRES_URL") or os.getenv("DATABASE_URL")
     return jsonify({
