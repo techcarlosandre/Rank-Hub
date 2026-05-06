@@ -254,7 +254,7 @@ def send_invitation_email(destinatario, nome_ranking, nome_admin):
     except Exception as e:
         print(f"Erro ao enviar convite: {e}")
         return False
-init_db()
+
 @app.route('/api/users', methods=['GET'])
 def list_all_users():
     conn = get_db_connection()
@@ -979,6 +979,8 @@ _db_initialized = False
 
 @app.before_request
 def auto_init_db():
+    if request.path in ['/health', '/api/health', '/_/backend/health', '/_/backend/api/health']:
+        return
     global _db_initialized
     if not _db_initialized:
         try:
