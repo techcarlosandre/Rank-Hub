@@ -4,6 +4,7 @@ import { useState, useEffect, use } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRankingTheme } from '@/contexts/RankingThemeContext';
+import { getApiUrl } from '@/lib/api';
 
 interface Member {
   id: number;
@@ -26,8 +27,8 @@ export default function RankingPage({ params }: { params: Promise<{ id: string }
     const fetchData = async () => {
       try {
         const [rankRes, membersRes] = await Promise.all([
-          fetch(`http://127.0.0.1:5000/api/rankings/${id}?t=${Date.now()}`),
-          fetch(`http://127.0.0.1:5000/api/rankings/${id}/leaderboard?t=${Date.now()}`)
+          fetch(getApiUrl(`rankings/${id}?t=${Date.now()}`)),
+          fetch(getApiUrl(`rankings/${id}/leaderboard?t=${Date.now()}`))
         ]);
         
         const rankData = await rankRes.json();

@@ -7,9 +7,9 @@
 // Na Vercel, o Flask responde no prefixo configurado no vercel.json
 const isProd = process.env.NODE_ENV === 'production';
 
-// Usamos '/_/backend' conforme exigido pela sua configuração da Vercel
+// Usamos '/_/backend/api' para garantir que as rotas batam com o prefixo /api do Flask
 export const API_BASE_URL = isProd 
-  ? '/_/backend' 
+  ? '/_/backend/api' 
   : 'http://127.0.0.1:5000/api';
 
 /**

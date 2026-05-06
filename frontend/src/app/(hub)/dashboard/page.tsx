@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getApiUrl } from '@/lib/api';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -13,13 +14,13 @@ export default function DashboardPage() {
   const fetchRankingsData = async () => {
     if (!user) return;
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/rankings?usuario_id=${user.id}`);
+      const res = await fetch(getApiUrl(`rankings?usuario_id=${user.id}`));
       const rankings = await res.json();
 
       const enrichedRankings = await Promise.all(rankings.map(async (r: any) => {
         const [logsRes, leaderRes] = await Promise.all([
-          fetch(`http://127.0.0.1:5000/api/rankings/${r.id}/logs`),
-          fetch(`http://127.0.0.1:5000/api/rankings/${r.id}/leaderboard`)
+          fetch(getApiUrl(`rankings/${r.id}/logs`)),
+          fetch(getApiUrl(`rankings/${r.id}/leaderboard`))
         ]);
 
         return {
@@ -47,7 +48,7 @@ export default function DashboardPage() {
     if (!user) return;
     
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/rankings/${id}/favorite`, {
+      const res = await fetch(getApiUrl(`rankings/${id}/favorite`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuario_id: user.id })

@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, Variants, AnimatePresence } from 'framer-motion';
 import DynamicLogo from '@/components/DynamicLogo';
-import WatchingEye from '@/components/WatchingEye';
 import { useAuthUI } from '@/contexts/AuthUIContext';
 import { useEffect } from 'react';
+import { getApiUrl } from '@/lib/api';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -35,18 +35,13 @@ export default function RegisterPage() {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const { setIsWatchingPassword } = useAuthUI();
 
-  // Sync local showPassword with global context
-  useEffect(() => {
-    setIsWatchingPassword(showPassword);
-    return () => setIsWatchingPassword(false); // Cleanup
-  }, [showPassword, setIsWatchingPassword]);
+  // Auth UI effect removed as password visibility is disabled here
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +50,7 @@ export default function RegisterPage() {
     setLoading(true);
     
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/register', {
+      const response = await fetch(getApiUrl('register'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nome, email, senha: password }),
@@ -154,21 +149,13 @@ export default function RegisterPage() {
           </motion.div>
           <motion.div variants={itemVariants} className="relative group/input">
             <input 
-              type={showPassword ? "text" : "password"}
+              type="password"
               placeholder="Senha" 
               required
               value={password}
               onChange={e => setPassword(e.target.value)}
               className="w-full bg-white/[0.02] border border-white/5 rounded-2xl px-6 py-5 text-white placeholder:text-white/20 focus:border-accent/40 focus:bg-white/[0.04] outline-none transition-all duration-300"
             />
-            <button 
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-6 top-1/2 -translate-y-1/2 z-10 hover:opacity-80 transition-opacity"
-              aria-label={showPassword ? "Esconder senha" : "Ver senha"}
-            >
-              <WatchingEye isWatching={showPassword} className="w-8 h-8" />
-            </button>
           </motion.div>
 
           {password && (
@@ -181,6 +168,7 @@ export default function RegisterPage() {
               <p className="text-sm font-mono text-white/80 break-all">{password}</p>
             </motion.div>
           )}
+
 
           <motion.button 
             variants={itemVariants}

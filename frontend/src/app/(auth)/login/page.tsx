@@ -8,6 +8,7 @@ import DynamicLogo from '@/components/DynamicLogo';
 import WatchingEye from '@/components/WatchingEye';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthUI } from '@/contexts/AuthUIContext';
+import { getApiUrl } from '@/lib/api';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -62,7 +63,7 @@ function LoginContent() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/login', {
+      const response = await fetch(getApiUrl('login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, senha: password }),

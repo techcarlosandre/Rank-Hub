@@ -5,6 +5,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from google import genai
 from dotenv import load_dotenv
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 # Carrega variáveis de ambiente
 from datetime import datetime
@@ -77,34 +79,85 @@ def send_welcome_email(destinatario, nome_usuario):
         return False
 
 def get_db_connection():
-    conn = sqlite3.connect('rankhub.db')
-    conn.row_factory = sqlite3.Row
-    return conn
+    # Se houver DATABASE_URL ou POSTGRES_URL, usa Postgres (Vercel)
+    db_url = os.getenv("POSTGRES_URL") or os.getenv("DATABASE_URL")
+    
+    if db_url:
+        # Se a URL começar com postgres://, o psycopg2 prefere postgresql://
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql://", 1)
+        
+        conn = psycopg2.connect(db_url, cursor_factory=RealDictCursor)
+        conn.autocommit = True
+        return conn
+    else:
+        # Caso contrário, usa SQLite (Local)
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        db_path = os.path.join(base_dir, 'rankhub.db')
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+def db_execute(conn, sql, params=()):
+    """Helper para executar queries em ambos os bancos (ajusta ? para %s no Postgres)"""
+    is_sqlite = isinstance(conn, sqlite3.Connection)
+    
+    if not is_sqlite:
+        sql = sql.replace('?', '%s')
+        cur = conn.cursor()
+        cur.execute(sql, params)
+        return cur
+    else:
+        return conn.execute(sql, params)
+
+def db_insert(conn, sql, params=()):
+    """Helper para INSERTS que retorna o ID gerado"""
+    is_sqlite = isinstance(conn, sqlite3.Connection)
+    if not is_sqlite:
+        sql = sql.replace('?', '%s')
+        if "RETURNING" not in sql.upper():
+            sql += " RETURNING id"
+        cur = conn.cursor()
+        cur.execute(sql, params)
+        row = cur.fetchone()
+        return row['id'] if row else None
+    else:
+        cur = conn.execute(sql, params)
+        return cur.lastrowid
 
 def init_db():
     conn = get_db_connection()
+    is_sqlite = isinstance(conn, sqlite3.Connection)
     cursor = conn.cursor()
-    schema_path = '../database/schema.sql'
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    schema_path = os.path.join(os.path.dirname(base_dir), 'database', 'schema.sql')
     
     try:
         if os.path.exists(schema_path):
             with open(schema_path, 'r', encoding='utf-8') as f:
                 schema_sql = f.read()
-                # Ajustes para SQLite
-                schema_sql = schema_sql.replace('SERIAL PRIMARY KEY', 'INTEGER PRIMARY KEY AUTOINCREMENT')
-                schema_sql = schema_sql.replace('TIMESTAMP DEFAULT CURRENT_TIMESTAMP', 'DATETIME DEFAULT CURRENT_TIMESTAMP')
-                cursor.executescript(schema_sql)
-                conn.commit()
+                
+                if is_sqlite:
+                    # Ajustes apenas para SQLite
+                    schema_sql = schema_sql.replace('SERIAL PRIMARY KEY', 'INTEGER PRIMARY KEY AUTOINCREMENT')
+                    schema_sql = schema_sql.replace('TIMESTAMP DEFAULT CURRENT_TIMESTAMP', 'DATETIME DEFAULT CURRENT_TIMESTAMP')
+                
+                if is_sqlite:
+                    cursor.executescript(schema_sql)
+                else:
+                    db_execute(conn, schema_sql)
+                
+                if is_sqlite: conn.commit()
                 
         # Rankings iniciais removidos para produção
         pass
         
         # Migração: Adiciona coluna favorito se não existir
         try:
-            cursor.execute("SELECT favorito FROM hub_membros LIMIT 1")
+            db_execute(conn, "SELECT favorito FROM hub_membros LIMIT 1")
         except sqlite3.OperationalError:
             print(">>> MIGRACAO: Adicionando coluna 'favorito' em hub_membros")
-            cursor.execute("ALTER TABLE hub_membros ADD COLUMN favorito INTEGER DEFAULT 0")
+            db_execute(conn, "ALTER TABLE hub_membros ADD COLUMN favorito INTEGER DEFAULT 0")
             
         conn.commit()
         print("Banco de Dados SQL inicializado/verificado.")
@@ -127,7 +180,7 @@ def init_db():
     
     for nome_col, tipo_col in colunas_novas:
         try:
-            cursor.execute(f"ALTER TABLE hub_rankings ADD COLUMN {nome_col} {tipo_col}")
+            db_execute(conn, f"ALTER TABLE hub_rankings ADD COLUMN {nome_col} {tipo_col}")
             conn.commit()
             print(f"Coluna '{nome_col}' adicionada com sucesso.")
         except sqlite3.OperationalError:
@@ -138,32 +191,32 @@ def init_db():
 
     # Atualiza a tabela hub_tarefas
     try:
-        cursor.execute("ALTER TABLE hub_tarefas ADD COLUMN pontos INTEGER DEFAULT 10")
+        db_execute(conn, "ALTER TABLE hub_tarefas ADD COLUMN pontos INTEGER DEFAULT 10")
         conn.commit()
     except:
         pass
 
     try:
-        cursor.execute("ALTER TABLE hub_tarefas ADD COLUMN recorrencia TEXT DEFAULT 'livre'")
+        db_execute(conn, "ALTER TABLE hub_tarefas ADD COLUMN recorrencia TEXT DEFAULT 'livre'")
         conn.commit()
     except:
         pass
 
     try:
-        cursor.execute("ALTER TABLE hub_membros ADD COLUMN pontos INTEGER DEFAULT 0")
+        db_execute(conn, "ALTER TABLE hub_membros ADD COLUMN pontos INTEGER DEFAULT 0")
         conn.commit()
     except:
         pass
 
     # Atualiza a tabela hub_membros para suportar apelidos
     try:
-        cursor.execute("ALTER TABLE hub_membros ADD COLUMN apelido TEXT")
+        db_execute(conn, "ALTER TABLE hub_membros ADD COLUMN apelido TEXT")
         conn.commit()
     except:
         pass
 
     # Cria tabela de patentes (Ranks por pontuação)
-    cursor.execute("""
+    db_execute(conn, """
         CREATE TABLE IF NOT EXISTS hub_patentes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             ranking_id INTEGER REFERENCES hub_rankings(id) ON DELETE CASCADE,
@@ -175,7 +228,7 @@ def init_db():
     conn.commit()
 
     # Tabela de convites pendentes para quem ainda não tem conta
-    cursor.execute("""
+    db_execute(conn, """
         CREATE TABLE IF NOT EXISTS hub_convites_pendentes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             email TEXT NOT NULL,
@@ -247,14 +300,14 @@ init_db()
 @app.route('/api/users', methods=['GET'])
 def list_all_users():
     conn = get_db_connection()
-    users = conn.execute('SELECT * FROM hub_usuarios').fetchall()
+    users = db_execute(conn, 'SELECT * FROM hub_usuarios').fetchall()
     conn.close()
     return jsonify([dict(u) for u in users]), 200
 
 @app.route('/api/user', methods=['GET'])
 def get_user():
     conn = get_db_connection()
-    user = conn.execute('SELECT id, nome, email, telefone, foto_perfil as foto_url FROM hub_usuarios LIMIT 1').fetchone()
+    user = db_execute(conn, 'SELECT id, nome, email, telefone, foto_perfil as foto_url FROM hub_usuarios LIMIT 1').fetchone()
     conn.close()
     if user:
         return jsonify(dict(user)), 200
@@ -265,7 +318,7 @@ def update_user():
     data = request.json
     conn = get_db_connection()
     
-    user = conn.execute('SELECT * FROM hub_usuarios LIMIT 1').fetchone()
+    user = db_execute(conn, 'SELECT * FROM hub_usuarios LIMIT 1').fetchone()
     if not user:
         conn.close()
         return jsonify({'error': 'Usuário não encontrado'}), 404
@@ -277,7 +330,7 @@ def update_user():
         return jsonify({'error': 'Senha atual incorreta'}), 401
     
     # Atualiza os dados no SQL
-    conn.execute("""
+    db_execute(conn, """
         UPDATE hub_usuarios 
         SET nome = ?, email = ?, telefone = ?, senha = ?
         WHERE id = ?
@@ -290,7 +343,7 @@ def update_user():
     ))
     conn.commit()
     
-    updated_user = conn.execute('SELECT * FROM hub_usuarios WHERE id = ?', (user['id'],)).fetchone()
+    updated_user = db_execute(conn, 'SELECT * FROM hub_usuarios WHERE id = ?', (user['id'],)).fetchone()
     conn.close()
     u_dict = dict(updated_user)
     u_dict['foto_url'] = u_dict['foto_perfil']
@@ -303,7 +356,7 @@ def login():
     senha = data.get('senha')
     
     conn = get_db_connection()
-    user = conn.execute('SELECT * FROM hub_usuarios WHERE email = ? AND senha = ?', (email, senha)).fetchone()
+    user = db_execute(conn, 'SELECT * FROM hub_usuarios WHERE email = ? AND senha = ?', (email, senha)).fetchone()
     conn.close()
     
     if user:
@@ -324,7 +377,7 @@ def register():
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
-        cursor.execute("""
+        usuario_id = db_insert(conn, """
             INSERT INTO hub_usuarios (nome, email, senha, foto_perfil)
             VALUES (?, ?, ?, ?)
         """, (
@@ -333,20 +386,19 @@ def register():
             data.get('senha'),
             "https://api.dicebear.com/7.x/avataaars/svg?seed=" + nome
         ))
-        usuario_id = cursor.lastrowid
         
         # VERIFICAÇÃO DE CONVITES PENDENTES
         # Se alguém convidou este e-mail antes dele ter conta, adiciona ele agora!
-        convites = conn.execute("SELECT ranking_id FROM hub_convites_pendentes WHERE email = ?", (email,)).fetchall()
+        convites = db_execute(conn, "SELECT ranking_id FROM hub_convites_pendentes WHERE email = ?", (email,)).fetchall()
         for convite in convites:
             try:
-                conn.execute("INSERT INTO hub_membros (ranking_id, usuario_id) VALUES (?, ?)", (convite['ranking_id'], usuario_id))
+                db_execute(conn, "INSERT INTO hub_membros (ranking_id, usuario_id) VALUES (?, ?)", (convite['ranking_id'], usuario_id))
                 print(f"Usuário {nome} vinculado automaticamente ao ranking {convite['ranking_id']} via convite pendente.")
             except:
                 pass # Já é membro por algum motivo
         
         # Limpa os convites processados
-        conn.execute("DELETE FROM hub_convites_pendentes WHERE email = ?", (email,))
+        db_execute(conn, "DELETE FROM hub_convites_pendentes WHERE email = ?", (email,))
         
         conn.commit()
         
@@ -380,7 +432,7 @@ def upload_avatar():
     
     # Atualiza no SQL (no primeiro usuário para este MVP)
     conn = get_db_connection()
-    conn.execute("UPDATE hub_usuarios SET foto_perfil = ? WHERE id = (SELECT id FROM hub_usuarios LIMIT 1)", (foto_url,))
+    db_execute(conn, "UPDATE hub_usuarios SET foto_perfil = ? WHERE id = (SELECT id FROM hub_usuarios LIMIT 1)", (foto_url,))
     conn.commit()
     conn.close()
     
@@ -406,7 +458,7 @@ def upload_ranking_icon(ranking_id):
     foto_url = f"http://127.0.0.1:5000/static/icons/{filename}"
     
     conn = get_db_connection()
-    conn.execute("UPDATE hub_rankings SET foto_url = ?, emoji = NULL WHERE id = ?", (foto_url, ranking_id))
+    db_execute(conn, "UPDATE hub_rankings SET foto_url = ?, emoji = NULL WHERE id = ?", (foto_url, ranking_id))
     conn.commit()
     conn.close()
     
@@ -420,7 +472,7 @@ def get_rankings():
     if usuario_id:
         try:
             # Retorna apenas rankings onde o usuário é membro, com status de favorito
-            rankings = conn.execute("""
+            rankings = db_execute(conn, """
                 SELECT r.*, m.favorito 
                 FROM hub_rankings r
                 JOIN hub_membros m ON r.id = m.ranking_id
@@ -429,7 +481,7 @@ def get_rankings():
             """, (usuario_id,)).fetchall()
         except sqlite3.OperationalError:
             # Fallback caso a migração ainda não tenha rodado
-            rankings = conn.execute("""
+            rankings = db_execute(conn, """
                 SELECT r.*, 0 as favorito 
                 FROM hub_rankings r
                 JOIN hub_membros m ON r.id = m.ranking_id
@@ -438,14 +490,14 @@ def get_rankings():
             """, (usuario_id,)).fetchall()
     else:
         # Fallback para todos os rankings se não houver user_id (ex: explorar)
-        rankings = conn.execute('SELECT *, 0 as favorito FROM hub_rankings').fetchall()
+        rankings = db_execute(conn, 'SELECT *, 0 as favorito FROM hub_rankings').fetchall()
         
     conn.close()
     return jsonify([dict(r) for r in rankings]), 200
 
 def check_and_reset_ranking(ranking_id):
     conn = get_db_connection()
-    ranking = conn.execute('SELECT * FROM hub_rankings WHERE id = ?', (ranking_id,)).fetchone()
+    ranking = db_execute(conn, 'SELECT * FROM hub_rankings WHERE id = ?', (ranking_id,)).fetchone()
     if not ranking or ranking['ciclo_reset'] == 'nunca':
         conn.close()
         return
@@ -463,7 +515,7 @@ def check_and_reset_ranking(ranking_id):
         cursor = conn.cursor()
         
         # 1. Antes de zerar, identifica o vencedor
-        vencedor = conn.execute("""
+        vencedor = db_execute(conn, """
             SELECT usuario_id, SUM(pontos_recebidos) as total
             FROM hub_logs_atividades
             WHERE ranking_id = ?
@@ -473,14 +525,14 @@ def check_and_reset_ranking(ranking_id):
         """, (ranking_id,)).fetchone()
         
         if vencedor and vencedor['total'] > 0:
-            cursor.execute("""
+            db_execute(conn, """
                 INSERT INTO hub_vencedores (ranking_id, usuario_id, pontos_finais, premio_ganho)
                 VALUES (?, ?, ?, ?)
             """, (ranking_id, vencedor['usuario_id'], vencedor['total'], ranking['premio_atual']))
             
         # 2. Agora sim, zera tudo
-        cursor.execute("DELETE FROM hub_logs_atividades WHERE ranking_id = ?",(ranking_id,))
-        cursor.execute("UPDATE hub_rankings SET ultimo_reset = ? WHERE id = ?", (agora.isoformat(), ranking_id))
+        db_execute(conn, "DELETE FROM hub_logs_atividades WHERE ranking_id = ?",(ranking_id,))
+        db_execute(conn, "UPDATE hub_rankings SET ultimo_reset = ? WHERE id = ?", (agora.isoformat(), ranking_id))
         conn.commit()
     conn.close()
 
@@ -522,7 +574,7 @@ def get_ranking_by_id(ranking_id):
         
         if updates:
             params.append(ranking_id)
-            cursor.execute(f"UPDATE hub_rankings SET {', '.join(updates)} WHERE id = ?", params)
+            db_execute(conn, f"UPDATE hub_rankings SET {', '.join(updates)} WHERE id = ?", params)
             conn.commit()
         conn.close()
         return jsonify({"status": "success", "message": "Ranking atualizado"}), 200
@@ -532,10 +584,10 @@ def get_ranking_by_id(ranking_id):
         conn = get_db_connection()
         try:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM hub_logs_atividades WHERE ranking_id = ?", (ranking_id,))
-            cursor.execute("DELETE FROM hub_membros WHERE ranking_id = ?", (ranking_id,))
-            cursor.execute("DELETE FROM regras_pontuacao WHERE ranking_id = ?", (ranking_id,))
-            cursor.execute("DELETE FROM hub_rankings WHERE id = ?", (ranking_id,))
+            db_execute(conn, "DELETE FROM hub_logs_atividades WHERE ranking_id = ?", (ranking_id,))
+            db_execute(conn, "DELETE FROM hub_membros WHERE ranking_id = ?", (ranking_id,))
+            db_execute(conn, "DELETE FROM regras_pontuacao WHERE ranking_id = ?", (ranking_id,))
+            db_execute(conn, "DELETE FROM hub_rankings WHERE id = ?", (ranking_id,))
             conn.commit()
             conn.close()
             return jsonify({"message": "Ranking excluído"}), 200
@@ -547,7 +599,7 @@ def get_ranking_by_id(ranking_id):
     check_and_reset_ranking(ranking_id)
 
     conn = get_db_connection()
-    ranking = conn.execute('SELECT * FROM hub_rankings WHERE id = ?', (ranking_id,)).fetchone()
+    ranking = db_execute(conn, 'SELECT * FROM hub_rankings WHERE id = ?', (ranking_id,)).fetchone()
     conn.close()
     if ranking:
         return jsonify(dict(ranking)), 200
@@ -570,21 +622,21 @@ def toggle_favorite(ranking_id):
         
         # --- AUTO-MIGRAÇÃO: Garante que a coluna favorito existe ---
         try:
-            conn.execute("SELECT favorito FROM hub_membros LIMIT 1")
+            db_execute(conn, "SELECT favorito FROM hub_membros LIMIT 1")
         except sqlite3.OperationalError:
             print(">>> MIGRACAO: Adicionando coluna 'favorito' em hub_membros")
-            conn.execute("ALTER TABLE hub_membros ADD COLUMN favorito INTEGER DEFAULT 0")
+            db_execute(conn, "ALTER TABLE hub_membros ADD COLUMN favorito INTEGER DEFAULT 0")
             conn.commit()
 
         # Verifica se o membro existe
-        membro = conn.execute("SELECT * FROM hub_membros WHERE ranking_id = ? AND usuario_id = ?", (ranking_id, usuario_id)).fetchone()
+        membro = db_execute(conn, "SELECT * FROM hub_membros WHERE ranking_id = ? AND usuario_id = ?", (ranking_id, usuario_id)).fetchone()
         
         if not membro:
             # Se não for membro, adiciona
-            conn.execute("INSERT INTO hub_membros (ranking_id, usuario_id, permissao, favorito) VALUES (?, ?, 'membro', 1)", (ranking_id, usuario_id))
+            db_execute(conn, "INSERT INTO hub_membros (ranking_id, usuario_id, permissao, favorito) VALUES (?, ?, 'membro', 1)", (ranking_id, usuario_id))
         else:
             # Alterna entre 0 e 1
-            conn.execute("""
+            db_execute(conn, """
                 UPDATE hub_membros 
                 SET favorito = CASE WHEN favorito = 1 THEN 0 ELSE 1 END 
                 WHERE ranking_id = ? AND usuario_id = ?
@@ -593,7 +645,7 @@ def toggle_favorite(ranking_id):
         conn.commit()
         
         # Busca o novo estado
-        new_status = conn.execute("SELECT favorito FROM hub_membros WHERE ranking_id = ? AND usuario_id = ?", (ranking_id, usuario_id)).fetchone()
+        new_status = db_execute(conn, "SELECT favorito FROM hub_membros WHERE ranking_id = ? AND usuario_id = ?", (ranking_id, usuario_id)).fetchone()
         
         is_fav = bool(new_status['favorito']) if new_status else False
         return jsonify({"status": "success", "favorito": is_fav}), 200
@@ -614,9 +666,8 @@ def create_ranking():
     admin_id = data.get('admin_id', 1)
     
     conn = get_db_connection()
-    cursor = conn.cursor()
     try:
-        cursor.execute("""
+        ranking_id = db_insert(conn, """
             INSERT INTO hub_rankings (nome, descricao, cor_tema_hex, admin_id)
             VALUES (?, ?, ?, ?)
         """, (
@@ -625,10 +676,9 @@ def create_ranking():
             data.get('cor_tema_hex', '#3b82f6'),
             admin_id
         ))
-        ranking_id = cursor.lastrowid
         
         # Adiciona o criador como membro admin
-        cursor.execute("""
+        db_execute(conn, """
             INSERT INTO hub_membros (ranking_id, usuario_id, permissao)
             VALUES (?, ?, 'admin')
         """, (ranking_id, admin_id))
@@ -642,7 +692,7 @@ def create_ranking():
             valor = regra.get('valor_ponto') or regra.get('pontos') or regra.get('valor') or 10
             condicao = regra.get('condicao_extra') or regra.get('descricao') or regra.get('condicao')
             
-            cursor.execute("""
+            db_execute(conn, """
                 INSERT INTO regras_pontuacao (ranking_id, tipo_atividade, valor_ponto, condicao_extra)
                 VALUES (?, ?, ?, ?)
             """, (ranking_id, tipo, valor, condicao))
@@ -662,7 +712,7 @@ def handle_tasks(ranking_id):
     conn = get_db_connection()
     try:
         # GARANTIA ABSOLUTA DA TABELA
-        conn.execute("""
+        db_execute(conn, """
             CREATE TABLE IF NOT EXISTS hub_tarefas (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 ranking_id INTEGER REFERENCES hub_rankings(id) ON DELETE CASCADE,
@@ -674,11 +724,11 @@ def handle_tasks(ranking_id):
         """)
         
         # Garantia de colunas caso a tabela já existisse antiga
-        columns = [c['name'] for c in conn.execute("PRAGMA table_info(hub_tarefas)").fetchall()]
+        columns = [c['name'] for c in db_execute(conn, "PRAGMA table_info(hub_tarefas)").fetchall()]
         if 'pontos' not in columns:
-            conn.execute("ALTER TABLE hub_tarefas ADD COLUMN pontos INTEGER DEFAULT 10")
+            db_execute(conn, "ALTER TABLE hub_tarefas ADD COLUMN pontos INTEGER DEFAULT 10")
         if 'recorrencia' not in columns:
-            conn.execute("ALTER TABLE hub_tarefas ADD COLUMN recorrencia TEXT DEFAULT 'livre'")
+            db_execute(conn, "ALTER TABLE hub_tarefas ADD COLUMN recorrencia TEXT DEFAULT 'livre'")
         conn.commit()
 
         if request.method == 'POST':
@@ -687,12 +737,12 @@ def handle_tasks(ranking_id):
             
             # BLOQUEIO DE SEGURANÇA: Somente o topo da hierarquia cria tarefas
             if usuario_id:
-                member = conn.execute("SELECT permissao FROM hub_membros WHERE ranking_id = ? AND usuario_id = ?", (ranking_id, usuario_id)).fetchone()
+                member = db_execute(conn, "SELECT permissao FROM hub_membros WHERE ranking_id = ? AND usuario_id = ?", (ranking_id, usuario_id)).fetchone()
                 if not member or member['permissao'] not in ['owner', 'admin']:
                     return jsonify({'error': 'Acesso negado: Somente o Fundador ou Admins podem criar tarefas.'}), 403
 
             print(f"--- Criando tarefa: {data.get('nome')} para Ranking: {ranking_id}")
-            conn.execute("""
+            db_execute(conn, """
                 INSERT INTO hub_tarefas (ranking_id, nome, descricao, pontos, recorrencia)
                 VALUES (?, ?, ?, ?, ?)
             """, (ranking_id, data['nome'], data.get('descricao'), data.get('pontos', 10), data.get('recorrencia', 'livre')))
@@ -700,7 +750,7 @@ def handle_tasks(ranking_id):
             return jsonify({'status': 'success'}), 201
         
         # Busca com log
-        cur = conn.execute("SELECT * FROM hub_tarefas WHERE ranking_id = ?", (ranking_id,))
+        cur = db_execute(conn, "SELECT * FROM hub_tarefas WHERE ranking_id = ?", (ranking_id,))
         tasks = cur.fetchall()
         print(f"--- Tarefas encontradas para ID {ranking_id}: {len(tasks)}")
         
@@ -719,13 +769,13 @@ def get_user_role(ranking_id):
     
     conn = get_db_connection()
     # Verifica se é o fundador (dono da tabela hub_rankings)
-    rank = conn.execute("SELECT admin_id FROM hub_rankings WHERE id = ?", (ranking_id,)).fetchone()
+    rank = db_execute(conn, "SELECT admin_id FROM hub_rankings WHERE id = ?", (ranking_id,)).fetchone()
     if rank and str(rank['admin_id']) == str(usuario_id):
         conn.close()
         return jsonify({'role': 'Fundador'}), 200
         
     # Verifica permissão na tabela de membros
-    member = conn.execute("SELECT permissao FROM hub_membros WHERE ranking_id = ? AND usuario_id = ?", (ranking_id, usuario_id)).fetchone()
+    member = db_execute(conn, "SELECT permissao FROM hub_membros WHERE ranking_id = ? AND usuario_id = ?", (ranking_id, usuario_id)).fetchone()
     conn.close()
     
     if member:
@@ -744,7 +794,7 @@ def register_points(ranking_id):
     conn = get_db_connection()
     try:
         # Busca detalhes da tarefa
-        tarefa = conn.execute("SELECT * FROM hub_tarefas WHERE id = ?", (tarefa_id,)).fetchone()
+        tarefa = db_execute(conn, "SELECT * FROM hub_tarefas WHERE id = ?", (tarefa_id,)).fetchone()
         if not tarefa:
             return jsonify({"error": "Tarefa não encontrada"}), 404
         
@@ -753,7 +803,7 @@ def register_points(ranking_id):
         if recorrencia != 'livre':
             # Verifica se já registrou recentemente
             query = "SELECT data FROM hub_historico WHERE usuario_id = ? AND tarefa_id = ? ORDER BY data DESC LIMIT 1"
-            ultimo_registro = conn.execute(query, (usuario_id, tarefa_id)).fetchone()
+            ultimo_registro = db_execute(conn, query, (usuario_id, tarefa_id)).fetchone()
             
             if ultimo_registro:
                 from datetime import datetime, timedelta
@@ -770,13 +820,13 @@ def register_points(ranking_id):
                         return jsonify({"error": "Esta tarefa só pode ser feita uma vez por semana."}), 400
 
         # Registra no histórico
-        conn.execute("""
+        db_execute(conn, """
             INSERT INTO hub_historico (ranking_id, usuario_id, tarefa_id, pontos)
             VALUES (?, ?, ?, ?)
         """, (ranking_id, usuario_id, tarefa_id, tarefa['pontos']))
         
         # Atualiza pontos do membro
-        conn.execute("""
+        db_execute(conn, """
             UPDATE hub_membros 
             SET pontos = pontos + ? 
             WHERE ranking_id = ? AND usuario_id = ?
@@ -792,7 +842,7 @@ def register_points(ranking_id):
 @app.route('/api/rankings/<int:ranking_id>/logs', methods=['GET'])
 def get_ranking_logs(ranking_id):
     conn = get_db_connection()
-    logs = conn.execute("""
+    logs = db_execute(conn, """
         SELECT l.*, COALESCE(NULLIF(m.apelido, ''), u.nome) as usuario 
         FROM hub_logs_atividades l
         JOIN hub_usuarios u ON l.usuario_id = u.id
@@ -811,19 +861,19 @@ def handle_members(ranking_id):
         email = data.get('email')
         
         # Busca info do ranking e do admin para o e-mail
-        ranking = conn.execute("SELECT nome, admin_id FROM hub_rankings WHERE id = ?", (ranking_id,)).fetchone()
-        admin = conn.execute("SELECT nome FROM hub_usuarios WHERE id = ?", (ranking['admin_id'],)).fetchone()
+        ranking = db_execute(conn, "SELECT nome, admin_id FROM hub_rankings WHERE id = ?", (ranking_id,)).fetchone()
+        admin = db_execute(conn, "SELECT nome FROM hub_usuarios WHERE id = ?", (ranking['admin_id'],)).fetchone()
         
         # SEMPRE CRIA APENAS CONVITE AGORA (Não adiciona direto)
         try:
             # Verifica se já é membro primeiro
-            user = conn.execute("SELECT id FROM hub_usuarios WHERE email = ?", (email,)).fetchone()
+            user = db_execute(conn, "SELECT id FROM hub_usuarios WHERE email = ?", (email,)).fetchone()
             if user:
-                is_member = conn.execute("SELECT 1 FROM hub_membros WHERE ranking_id = ? AND usuario_id = ?", (ranking_id, user['id'])).fetchone()
+                is_member = db_execute(conn, "SELECT 1 FROM hub_membros WHERE ranking_id = ? AND usuario_id = ?", (ranking_id, user['id'])).fetchone()
                 if is_member:
                     return jsonify({'error': 'Este usuário já é membro desta arena'}), 400
             
-            conn.execute("INSERT INTO hub_convites_pendentes (email, ranking_id) VALUES (?, ?)", (email, ranking_id))
+            db_execute(conn, "INSERT INTO hub_convites_pendentes (email, ranking_id) VALUES (?, ?)", (email, ranking_id))
             conn.commit()
             send_invitation_email(email, ranking['nome'], admin['nome'])
             return jsonify({'message': 'Convite enviado com sucesso!'}), 201
@@ -834,7 +884,7 @@ def handle_members(ranking_id):
     
     # ... (GET remains same)
     
-    members = conn.execute("""
+    members = db_execute(conn, """
         SELECT u.id, u.nome, u.email, u.foto_perfil as foto_url, m.permissao as role, m.apelido, m.pontos
         FROM hub_membros m
         JOIN hub_usuarios u ON m.usuario_id = u.id
@@ -847,12 +897,12 @@ def handle_members(ranking_id):
 def get_user_invites(user_id):
     conn = get_db_connection()
     # Pega o e-mail do usuário logado
-    user = conn.execute("SELECT email FROM hub_usuarios WHERE id = ?", (user_id,)).fetchone()
+    user = db_execute(conn, "SELECT email FROM hub_usuarios WHERE id = ?", (user_id,)).fetchone()
     if not user:
         conn.close()
         return jsonify([]), 200
         
-    invites = conn.execute("""
+    invites = db_execute(conn, """
         SELECT c.id, r.nome as ranking_nome, r.emoji, r.foto_url, u.nome as admin_nome
         FROM hub_convites_pendentes c
         JOIN hub_rankings r ON c.ranking_id = r.id
@@ -870,15 +920,15 @@ def accept_invite(invite_id):
     conn = get_db_connection()
     try:
         # Busca o convite
-        invite = conn.execute("SELECT ranking_id, email FROM hub_convites_pendentes WHERE id = ?", (invite_id,)).fetchone()
+        invite = db_execute(conn, "SELECT ranking_id, email FROM hub_convites_pendentes WHERE id = ?", (invite_id,)).fetchone()
         if not invite:
             return jsonify({'error': 'Convite expirado ou não encontrado'}), 404
             
         # Adiciona como membro
-        conn.execute("INSERT INTO hub_membros (ranking_id, usuario_id) VALUES (?, ?)", (invite['ranking_id'], usuario_id))
+        db_execute(conn, "INSERT INTO hub_membros (ranking_id, usuario_id) VALUES (?, ?)", (invite['ranking_id'], usuario_id))
         
         # Remove o convite
-        conn.execute("DELETE FROM hub_convites_pendentes WHERE id = ?", (invite_id,))
+        db_execute(conn, "DELETE FROM hub_convites_pendentes WHERE id = ?", (invite_id,))
         conn.commit()
         return jsonify({'status': 'success'}), 200
     except Exception as e:
@@ -890,7 +940,7 @@ def accept_invite(invite_id):
 def refuse_invite(invite_id):
     conn = get_db_connection()
     try:
-        conn.execute("DELETE FROM hub_convites_pendentes WHERE id = ?", (invite_id,))
+        db_execute(conn, "DELETE FROM hub_convites_pendentes WHERE id = ?", (invite_id,))
         conn.commit()
         return jsonify({'status': 'success'}), 200
     except Exception as e:
@@ -907,9 +957,9 @@ def update_member_data(ranking_id, usuario_id):
     conn = get_db_connection()
     try:
         if apelido is not None:
-            conn.execute("UPDATE hub_membros SET apelido = ? WHERE ranking_id = ? AND usuario_id = ?", (apelido, ranking_id, usuario_id))
+            db_execute(conn, "UPDATE hub_membros SET apelido = ? WHERE ranking_id = ? AND usuario_id = ?", (apelido, ranking_id, usuario_id))
         if role is not None:
-            conn.execute("UPDATE hub_membros SET permissao = ? WHERE ranking_id = ? AND usuario_id = ?", (role, ranking_id, usuario_id))
+            db_execute(conn, "UPDATE hub_membros SET permissao = ? WHERE ranking_id = ? AND usuario_id = ?", (role, ranking_id, usuario_id))
         conn.commit()
         return jsonify({"status": "success"}), 200
     except Exception as e:
@@ -923,7 +973,7 @@ def handle_patents(ranking_id):
     if request.method == 'POST':
         data = request.json
         try:
-            conn.execute("""
+            db_execute(conn, """
                 INSERT INTO hub_patentes (ranking_id, nome, pontos_minimos, cor_hex)
                 VALUES (?, ?, ?, ?)
             """, (ranking_id, data['nome'], data['pontos_minimos'], data.get('cor_hex', '#ffffff')))
@@ -934,7 +984,7 @@ def handle_patents(ranking_id):
         finally:
             conn.close()
     
-    patents = conn.execute("SELECT * FROM hub_patentes WHERE ranking_id = ? ORDER BY pontos_minimos ASC", (ranking_id,)).fetchall()
+    patents = db_execute(conn, "SELECT * FROM hub_patentes WHERE ranking_id = ? ORDER BY pontos_minimos ASC", (ranking_id,)).fetchall()
     conn.close()
     return jsonify([dict(p) for p in patents]), 200
 
@@ -942,7 +992,7 @@ def handle_patents(ranking_id):
 def delete_patent(patent_id):
     conn = get_db_connection()
     try:
-        conn.execute("DELETE FROM hub_patentes WHERE id = ?", (patent_id,))
+        db_execute(conn, "DELETE FROM hub_patentes WHERE id = ?", (patent_id,))
         conn.commit()
         return jsonify({'status': 'success'}), 200
     except Exception as e:
@@ -953,7 +1003,7 @@ def delete_patent(patent_id):
 @app.route('/api/rankings/<int:ranking_id>/rules', methods=['GET'])
 def get_rules(ranking_id):
     conn = get_db_connection()
-    rules = conn.execute("SELECT * FROM regras_pontuacao WHERE ranking_id = ?", (ranking_id,)).fetchall()
+    rules = db_execute(conn, "SELECT * FROM regras_pontuacao WHERE ranking_id = ?", (ranking_id,)).fetchall()
     conn.close()
     return jsonify([dict(r) for r in rules]), 200
 
@@ -961,7 +1011,7 @@ def get_rules(ranking_id):
 def delete_rule(rule_id):
     conn = get_db_connection()
     try:
-        conn.execute("DELETE FROM regras_pontuacao WHERE id = ?", (rule_id,))
+        db_execute(conn, "DELETE FROM regras_pontuacao WHERE id = ?", (rule_id,))
         conn.commit()
         conn.close()
         return jsonify({"message": "Regra excluída com sucesso"}), 200
@@ -977,11 +1027,11 @@ def log_activity(ranking_id):
     
     conn = get_db_connection()
     try:
-        regra = conn.execute("SELECT * FROM regras_pontuacao WHERE id = ?", (regra_id,)).fetchone()
+        regra = db_execute(conn, "SELECT * FROM regras_pontuacao WHERE id = ?", (regra_id,)).fetchone()
         if not regra:
             return jsonify({'error': 'Regra não encontrada'}), 404
             
-        conn.execute("""
+        db_execute(conn, """
             INSERT INTO hub_logs_atividades (usuario_id, ranking_id, regra_id, pontos_recebidos, descricao)
             VALUES (?, ?, ?, ?, ?)
         """, (usuario_id, ranking_id, regra_id, regra['valor_ponto'], regra['tipo_atividade']))
@@ -1001,13 +1051,13 @@ def remove_member(ranking_id, usuario_id):
     conn = get_db_connection()
     
     # 1. Verifica quem está pedindo
-    requester = conn.execute("SELECT permissao FROM hub_membros WHERE ranking_id = ? AND usuario_id = ?", (ranking_id, requester_id)).fetchone()
+    requester = db_execute(conn, "SELECT permissao FROM hub_membros WHERE ranking_id = ? AND usuario_id = ?", (ranking_id, requester_id)).fetchone()
     # Também checa se o requester é o admin_id da tabela rankings (Fundador)
-    rank_info = conn.execute("SELECT admin_id FROM hub_rankings WHERE id = ?", (ranking_id,)).fetchone()
+    rank_info = db_execute(conn, "SELECT admin_id FROM hub_rankings WHERE id = ?", (ranking_id,)).fetchone()
     is_founder = str(rank_info['admin_id']) == str(requester_id)
     
     # 2. Verifica quem será removido
-    target = conn.execute("SELECT permissao FROM hub_membros WHERE ranking_id = ? AND usuario_id = ?", (ranking_id, usuario_id)).fetchone()
+    target = db_execute(conn, "SELECT permissao FROM hub_membros WHERE ranking_id = ? AND usuario_id = ?", (ranking_id, usuario_id)).fetchone()
     if not target:
         conn.close()
         return jsonify({'error': 'Membro não encontrado'}), 404
@@ -1018,14 +1068,14 @@ def remove_member(ranking_id, usuario_id):
         if is_founder:
             conn.close()
             return jsonify({'error': 'O Fundador não pode sair. Exclua o ranking se desejar encerrar.'}), 403
-        conn.execute("DELETE FROM hub_membros WHERE ranking_id = ? AND usuario_id = ?", (ranking_id, usuario_id))
+        db_execute(conn, "DELETE FROM hub_membros WHERE ranking_id = ? AND usuario_id = ?", (ranking_id, usuario_id))
         conn.commit()
         conn.close()
         return jsonify({'message': 'Você saiu do ranking'}), 200
 
     # - Se o Fundador quer remover alguém, ele pode remover QUALQUER UM
     if is_founder:
-        conn.execute("DELETE FROM hub_membros WHERE ranking_id = ? AND usuario_id = ?", (ranking_id, usuario_id))
+        db_execute(conn, "DELETE FROM hub_membros WHERE ranking_id = ? AND usuario_id = ?", (ranking_id, usuario_id))
         conn.commit()
         conn.close()
         return jsonify({'message': 'Membro removido pelo Fundador'}), 200
@@ -1033,7 +1083,7 @@ def remove_member(ranking_id, usuario_id):
     # - Se um Admin quer remover alguém, só pode se o alvo for 'Membro'
     if requester and requester['permissao'] == 'admin':
         if target['permissao'] == 'Membro':
-            conn.execute("DELETE FROM hub_membros WHERE ranking_id = ? AND usuario_id = ?", (ranking_id, usuario_id))
+            db_execute(conn, "DELETE FROM hub_membros WHERE ranking_id = ? AND usuario_id = ?", (ranking_id, usuario_id))
             conn.commit()
             conn.close()
             return jsonify({'message': 'Membro removido pelo Administrador'}), 200
@@ -1049,7 +1099,7 @@ def get_leaderboard(ranking_id):
     conn = get_db_connection()
     try:
         # Puxa os membros com fallback de nome caso não tenha apelido
-        members = conn.execute("""
+        members = db_execute(conn, """
             SELECT 
                 u.id, 
                 COALESCE(NULLIF(m.apelido, ''), u.nome) as nome_personalizado, 
@@ -1072,7 +1122,7 @@ def get_leaderboard(ranking_id):
 @app.route('/api/rankings/<int:ranking_id>/winners', methods=['GET'])
 def get_winners(ranking_id):
     conn = get_db_connection()
-    winners = conn.execute("""
+    winners = db_execute(conn, """
         SELECT v.*, u.nome, u.foto_perfil as foto_url
         FROM hub_vencedores v
         JOIN hub_usuarios u ON v.usuario_id = u.id
