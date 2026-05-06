@@ -1,85 +1,70 @@
 # 🚀 Rank&Hub - Ecossistema Gamificado de Rankings
 
 <div align="center">
-  <img src="public/img/logo.png" width="200px" alt="Rank&Hub Logo" />
-  <p><i>Transforme metas em competição, engajamento e resultados extraordinários.</i></p>
+  <img src="public/img/logo.png" width="180px" alt="Rank&Hub Logo" />
+  <p><h3>Transforme metas em competição, engajamento e resultados extraordinários.</h3></p>
 
   <br />
 
-  [![Live Demo](https://img.shields.io/badge/Demo-Acesse%20Agora-000?style=for-the-badge&logo=vercel&logoColor=white)](https://rankhub.vercel.app)
-  [![Deploy to Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Ftechcarlosandre%2FRank-Hub&env=GEMINI_API_KEY,EMAIL_USER,EMAIL_PASS,POSTGRES_URL&envDescription=Configura%C3%A7%C3%B5es%20necess%C3%A1rias%20para%20o%20funcionamento%20do%20SaaS.&project-name=rank-hub&repository-name=rank-hub)
+  <div align="center">
+    <a href="https://rankhub.vercel.app" target="_blank">
+      <img src="https://img.shields.io/badge/ABRIR%20RANK%20HUB-000?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Project" height="45">
+    </a>
+  </div>
+  
+  <p><i>Acesse o projeto oficial e explore todas as funcionalidades em tempo real.</i></p>
 </div>
 
 ---
 
-## 📸 Demonstração do Ecossistema
+## 📸 Experiência de Competição Completa
 
-### 🏆 Dashboard de Rankings & Competição Ativa
-Acompanhe o progresso em tempo real com uma interface gamificada, badges de conquistas e pódios dinâmicos.
+### 📊 Dashboard Estratégico & Rankings
+Acompanhe os principais indicadores de performance (KPIs) com uma interface visual limpa, moderna e focada na progressão dos usuários.
 <div align="center">
-  <img src="public/readme/dashboard_1.png" width="45%" />
-  <img src="public/readme/dashboard_2.png" width="45%" />
+  <img src="public/readme/dashboard_1.png" width="98%" />
 </div>
 
 <br />
 
-### 🤖 Inteligência Artificial & Regras Customizadas
-Utilize o poder do Google Gemini para criar regras de pontuação complexas e personalizadas para qualquer tipo de competição.
+### 🏆 Inteligência Artificial & Membros
+Criação de regras inteligentes via Gemini AI e gestão completa de participantes com pódios automáticos.
 <div align="center">
-  <img src="public/readme/regras_ai.png" width="45%" />
-  <img src="public/readme/configuracoes.png" width="45%" />
-</div>
-
-<br />
-
-### 📱 Experiência Mobile & Gestão de Membros
-Expanda sua comunidade com convites rápidos, gestão de permissões e uma interface totalmente responsiva.
-<div align="center">
-  <img src="public/readme/mobile_view.png" width="45%" />
-  <img src="public/readme/membros.png" width="45%" />
+  <img src="public/readme/regras_ai.png" width="48%" />
+  <img src="public/readme/membros.png" width="48%" />
 </div>
 
 ---
 
-## ✨ Diferenciais do Projeto
+## ✨ Diferenciais do Ecossistema
 
-- **Gamificação Premium:** Design focado em retenção e engajamento, utilizando mecânicas de jogos para o mundo real.
-- **Inteligência Artificial Integrada:** Sugestão de nomes, descrições e regras de pontuação via Gemini AI.
-- **Backend Híbrido:** Arquitetura preparada para rodar localmente com SQLite ou em escala com PostgreSQL (Neon).
-- **Sistema de Notificações:** Automação de e-mails de boas-vindas e alertas de competição via SMTP.
-- **Segurança & Permissões:** Diferenciação clara entre Admin (Criador), Moderadores e Membros.
-
----
-
-## 🌟 Showcase Tecnológico (Modo SaaS)
-
-Este repositório demonstra a implementação de um SaaS (Software as a Service) moderno e escalável:
-
-- **Arquitetura Unificada:** Frontend e Backend integrados na mesma infraestrutura Vercel para latência zero.
-- **Banco de Dados Relacional:** Migração transparente de SQLite para PostgreSQL para persistência robusta em nuvem.
-- **Clean Code & UX:** Componentes reutilizáveis e animações fluidas com Framer Motion.
-- **Pronto para Produção:** Configurações de SEO, metadados e roteamento avançado implementados.
-
-<div align="center">
-  <img src="public/readme/demo_showcase.png" width="600px" />
-  <p><i>Interface moderna e intuitiva projetada para maximizar a performance do usuário.</i></p>
-</div>
+- **Design Premium:** Interface moderna, intuitiva e totalmente responsiva com animações fluidas via Framer Motion.
+- **Inteligência Artificial:** Geração dinâmica de regras e descrições utilizando a API do Google Gemini.
+- **Backend Híbrido:** Suporte nativo para SQLite (local) e PostgreSQL Neon (produção) com transição transparente.
+- **Gamificação Ativa:** Sistema de badges, notificações por e-mail e ciclos de competição automatizados.
 
 ---
 
 ## 🛠️ Stack Tecnológica
 
-- **Frontend:** [Next.js 15+](https://nextjs.org/) (App Router)
-- **Backend:** [Python Flask](https://flask.palletsprojects.com/)
-- **AI Engine:** [Google Gemini AI](https://ai.google.dev/)
-- **Database:** [PostgreSQL (Neon)](https://neon.tech/) & [SQLite](https://www.sqlite.org/)
-- **Styling:** [Vanilla CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) & [Framer Motion](https://www.framer.com/motion/)
-- **State Management:** React Context API & Hooks
+O **Rank&Hub** utiliza o que há de mais moderno no desenvolvimento full-stack para garantir performance e escalabilidade:
+
+- **Frontend:** Next.js 15 (App Router)
+- **Backend:** Python Flask
+- **AI Engine:** Google Gemini AI
+- **Database:** PostgreSQL (Neon)
+- **Estilização:** Vanilla CSS & Framer Motion
 
 ---
 
-## 📧 Contato & Redes
+## 📧 Contato Comercial & Desenvolvedor
 
-Desenvolvido por **Carlos André**  
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/devcarlosandre/)
+**Carlos André** — *Especialista em Soluções SaaS*  
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/techcarlosandre/)
 [![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/techcarlosandre)
+[![WhatsApp](https://img.shields.io/badge/WhatsApp-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)](https://wa.me/5521982665121)
+
+<div align="center">
+  <p>© 2026 Rank&Hub • Ecossistema de Gamificação</p>
+</div>
