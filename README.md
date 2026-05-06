@@ -7,7 +7,7 @@
   <br />
 
   <div align="center">
-    <a href="https://rankhub.vercel.app" target="_blank">
+    <a href="https://rankehub.vercel.app" target="_blank">
       <img src="https://img.shields.io/badge/ABRIR%20RANK%20HUB-000?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Project" height="45">
     </a>
   </div>
