@@ -180,7 +180,7 @@ def init_db():
             ranking_id INTEGER REFERENCES hub_rankings(id) ON DELETE CASCADE,
             nome TEXT NOT NULL,
             pontos_minimos INTEGER NOT NULL,
-            cor_hex TEXT DEFAULT '
+            cor_hex TEXT DEFAULT '#3b82f6'
         )
     """)
     conn.commit()
