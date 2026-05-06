@@ -110,7 +110,7 @@ def init_db():
     is_sqlite = isinstance(conn, sqlite3.Connection)
     cursor = conn.cursor()
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    schema_path = os.path.join(os.path.dirname(base_dir), 'database', 'schema.sql')
+    schema_path = os.path.join(base_dir, 'schema.sql')
     try:
         if os.path.exists(schema_path):
             with open(schema_path, 'r', encoding='utf-8') as f:
@@ -961,9 +961,13 @@ def generate_rules():
         return jsonify(json_result), 200
     except Exception as e:
         import traceback
-        traceback.print_exc() 
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
-init_db()
+
+try:
+    init_db()
+except Exception as e:
+    print(f"Erro Crítico no init_db: {e}")
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
