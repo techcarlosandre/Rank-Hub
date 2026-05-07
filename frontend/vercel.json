@@ -1,8 +1,0 @@
-{
-  "rewrites": [
-    {
-      "source": "/_/backend/:path*",
-      "destination": "/api/:path*"
-    }
-  ]
-}
