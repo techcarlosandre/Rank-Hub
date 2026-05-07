@@ -19,19 +19,26 @@
 
 ## 📸 Experiência de Competição Completa
 
-### 📊 Dashboard Estratégico & Rankings
-Acompanhe os principais indicadores de performance (KPIs) com uma interface visual limpa, moderna e focada na progressão dos usuários.
+### 🔐 Autenticação & Entrada Premium
+A primeira impressão importa. Uma interface de login elegante e moderna que convida o usuário para o ecossistema.
 <div align="center">
-  <img src="public/readme/dashboard_1.png" width="98%" />
+  <img src="frontend/public/readme/login.png" width="98%" />
 </div>
 
 <br />
 
-### 🏆 Inteligência Artificial & Membros
-Criação de regras inteligentes via Gemini AI e gestão completa de participantes com pódios automáticos.
+### 📊 Dashboard Estratégico & Rankings
+Acompanhe os principais indicadores de performance (KPIs) com uma interface visual limpa, moderna e focada na progressão dos usuários.
 <div align="center">
-  <img src="public/readme/regras_ai.png" width="48%" />
-  <img src="public/readme/membros.png" width="48%" />
+  <img src="frontend/public/readme/dashboard.png" width="98%" />
+</div>
+
+<br />
+
+### 🤖 Inteligência Artificial & Gestão
+Criação de regras inteligentes via Gemini AI para automatizar a gamificação e engajar os membros.
+<div align="center">
+  <img src="frontend/public/readme/ia.png" width="98%" />
 </div>
 
 ---
