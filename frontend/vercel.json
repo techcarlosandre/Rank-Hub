@@ -1,9 +1,8 @@
 {
-  "framework": "nextjs",
   "rewrites": [
     {
       "source": "/_/backend/:path*",
-      "destination": "/api/index.py"
+      "destination": "/api/:path*"
     }
   ]
 }
