@@ -3,27 +3,26 @@ import os
 
 app = Flask(__name__)
 
-class PrefixMiddleware(object):
-    def __init__(self, app, prefix=''):
-        self.app = app
-        self.prefix = prefix
-    def __call__(self, environ, start_response):
-        if environ['PATH_INFO'].startswith(self.prefix):
-            environ['PATH_INFO'] = environ['PATH_INFO'][len(self.prefix):]
-            environ['SCRIPT_NAME'] = self.prefix
-        return self.app(environ, start_response)
-
-app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix='/_/backend')
-
+# Rota de saúde que aceita qualquer um dos caminhos possíveis
 @app.route('/health')
 @app.route('/api/health')
+@app.route('/_/backend/health')
 @app.route('/_/backend/api/health')
 def health():
     return jsonify({
         "status": "online",
-        "message": "Servidor ultra-leve ativo",
+        "path_received": request.path,
         "env": os.getenv('VERCEL_ENV', 'local')
     }), 200
 
-# O resto do código será adicionado após confirmarmos que este liga.
+# Rota de teste para ver o que o Flask está enxergando
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def catch_all(path):
+    return jsonify({
+        "message": "Caminho capturado",
+        "path": path,
+        "full_path": request.path
+    }), 200
+
 handler = app
