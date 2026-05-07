@@ -9,13 +9,7 @@ from dotenv import load_dotenv
 app = Flask(__name__)
 application = app
 handler = app
-
-# Middleware nativo seguro
-@app.before_request
-def handle_prefix():
-    prefix = '/_/backend'
-    if request.path.startswith(prefix):
-        request.environ['PATH_INFO'] = request.path[len(prefix):]
+from flask import Blueprint
 
 try:
     import psycopg2
@@ -36,8 +30,11 @@ if gemini_api_key:
     except Exception as e:
         print(f"Erro Gemini: {e}")
 
-@app.route('/health')
-@app.route('/api/health')
+# Criamos um Blueprint para gerenciar o prefixo da Vercel
+api_bp = Blueprint('api_bp', __name__, url_prefix='/_/backend/api')
+
+@api_bp.route('/health')
+@app.route('/health') # Mantemos uma rota na raiz para teste direto
 def health_check():
     db_url = os.getenv("POSTGRES_URL") or os.getenv("DATABASE_URL")
     return jsonify({
@@ -45,6 +42,8 @@ def health_check():
         'db_found': bool(db_url),
         'psycopg2': psycopg2 is not None
     }), 200
+
+# Vamos registrar o blueprint no app mais tarde
 
 def get_db_connection():
     db_url = os.getenv("POSTGRES_URL") or os.getenv("DATABASE_URL")
@@ -120,7 +119,7 @@ def auto_init():
 
 # --- Rotas Originais ---
 # (Copiando o restante do app.py original aqui)
-@app.route('/api/login', methods=['POST'])
+@api_bp.route('/login', methods=['POST'])
 def login():
     data = request.json
     conn = get_db_connection()
@@ -132,7 +131,7 @@ def login():
         return jsonify({'status': 'success', 'user': u}), 200
     return jsonify({'error': 'Credenciais inválidas'}), 401
 
-@app.route('/api/register', methods=['POST'])
+@api_bp.route('/register', methods=['POST'])
 def register():
     data = request.json
     conn = get_db_connection()
@@ -149,7 +148,7 @@ def register():
     finally: conn.close()
 
 # Rota para Rankings (Essencial para o site funcionar)
-@app.route('/api/rankings', methods=['GET', 'POST'])
+@api_bp.route('/rankings', methods=['GET', 'POST'])
 def handle_rankings():
     conn = get_db_connection()
     if request.method == 'POST':
@@ -170,5 +169,7 @@ def handle_rankings():
     return jsonify([dict(r) for r in ranks]), 200
 
 # Adicionando o restante das rotas conforme necessário...
+app.register_blueprint(api_bp)
+
 if __name__ == '__main__':
     app.run(debug=True)
