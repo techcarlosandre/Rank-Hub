@@ -933,26 +933,26 @@ def generate_rules():
         return jsonify({'error': 'O campo prompt é obrigatório.'}), 400
     try:
         if not client:
-             return jsonify({'error': 'A chave da API do Gemini não está configurada ou cliente não inicializado.'}), 500
-        system_prompt = """
-        Você é o Assistente de IA do Rank&Hub, uma inteligência de elite que gerencia rankings.
-        Sua tarefa é criar um ranking estruturado baseado no desejo do usuário.
+            return jsonify({'error': 'A chave da API do Gemini não está configurada ou cliente não inicializado.'}), 500
         
-        Você DEVE retornar ESTRITAMENTE um JSON no formato:
-        {
-            "nome_ranking": "Nome criativo para o ranking",
-            "descricao": "Uma descrição envolvente",
-            "regras": [
-                { "tipo_atividade": "Nome da Atividade", "valor_ponto": 10, "condicao_extra": "Opcional: ex: Uma vez por dia" },
-                { "tipo_atividade": "Outra Atividade", "valor_ponto": 25, "condicao_extra": "Opcional" }
-            ]
-        }
+        system_prompt = (
+            "Você é o Assistente de IA do Rank&Hub, uma inteligência de elite que gerencia rankings.\n"
+            "Sua tarefa é criar um ranking estruturado baseado no desejo do usuário.\n\n"
+            "Você DEVE retornar ESTRITAMENTE um JSON no formato:\n"
+            "{\n"
+            "    \"nome_ranking\": \"Nome criativo para o ranking\",\n"
+            "    \"descricao\": \"Uma descrição envolvente\",\n"
+            "    \"regras\": [\n"
+            "        { \"tipo_atividade\": \"Nome da Atividade\", \"valor_ponto\": 10, \"condicao_extra\": \"Opcional: ex: Uma vez por dia\" },\n"
+            "        { \"tipo_atividade\": \"Outra Atividade\", \"valor_ponto\": 25, \"condicao_extra\": \"Opcional\" }\n"
+            "    ]\n"
+            "}\n\n"
+            "Regras de Ouro:\n"
+            "- O nome deve ser impactante.\n"
+            "- As regras devem ser equilibradas.\n"
+            "- Retorne apenas o JSON, sem explicações extras."
+        )
         
-        Regras de Ouro:
-        - O nome deve ser impactante.
-        - As regras devem ser equilibradas.
-        - Retorne apenas o JSON, sem explicações extras.
-        """
         full_prompt = f"{system_prompt}\n\nEntrada do usuário:\n{prompt_usuario}"
         response = client.models.generate_content(
             model='gemini-1.5-flash',
@@ -965,6 +965,7 @@ def generate_rules():
             result_text = result_text[3:]
         if result_text.endswith("```"):
             result_text = result_text[:-3]
+            
         json_result = json.loads(result_text.strip())
         return jsonify(json_result), 200
     except Exception as e:

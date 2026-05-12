@@ -1,7 +1,7 @@
 # 🚀 Rank&Hub - Ecossistema Gamificado de Rankings
 
 <div align="center">
-  <img src="public/img/logo.png" width="180px" alt="Rank&Hub Logo" />
+  <img src="frontend/public/img/logo.png" width="180px" alt="Rank&Hub Logo" />
   <p><h3>Transforme metas em competição, engajamento e resultados extraordinários.</h3></p>
 
   <br />
