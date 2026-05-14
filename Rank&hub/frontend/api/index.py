@@ -118,7 +118,7 @@ def auto_init():
         except: pass
 
 # --- Rotas Originais ---
-# (Copiando o restante do app.py original aqui)
+
 @api_bp.route('/login', methods=['POST'])
 def login():
     data = request.json
@@ -147,7 +147,6 @@ def register():
     except Exception as e: return jsonify({'error': str(e)}), 500
     finally: conn.close()
 
-# Rota para Rankings (Essencial para o site funcionar)
 @api_bp.route('/rankings', methods=['GET', 'POST'])
 def handle_rankings():
     conn = get_db_connection()
@@ -155,6 +154,18 @@ def handle_rankings():
         data = request.json
         rid = db_insert(conn, "INSERT INTO hub_rankings (nome, descricao, admin_id) VALUES (?,?,?)",
                         (data['nome'], data.get('descricao', ''), data.get('admin_id', 1)))
+        
+        # Adicionar regras se existirem
+        regras = data.get('regras', [])
+        for regra in regras:
+            tipo = regra.get('tipo_atividade') or regra.get('atividade') or regra.get('nome')
+            valor = regra.get('valor_ponto') or regra.get('pontos') or 10
+            condicao = regra.get('condicao_extra') or regra.get('descricao') or ''
+            db_execute(conn, """
+                INSERT INTO regras_pontuacao (ranking_id, tipo_atividade, valor_ponto, condicao_extra)
+                VALUES (?, ?, ?, ?)
+            """, (rid, tipo, valor, condicao))
+
         db_execute(conn, "INSERT INTO hub_membros (ranking_id, usuario_id, permissao) VALUES (?,?,'admin')", (rid, data.get('admin_id', 1)))
         conn.commit()
         conn.close()
@@ -162,13 +173,115 @@ def handle_rankings():
     
     uid = request.args.get('usuario_id')
     if uid:
-        ranks = db_execute(conn, "SELECT r.* FROM hub_rankings r JOIN hub_membros m ON r.id = m.ranking_id WHERE m.usuario_id = ?", (uid,)).fetchall()
+        ranks = db_execute(conn, """
+            SELECT r.* FROM hub_rankings r 
+            JOIN hub_membros m ON r.id = m.ranking_id 
+            WHERE m.usuario_id = ?
+        """, (uid,)).fetchall()
     else:
         ranks = db_execute(conn, "SELECT * FROM hub_rankings").fetchall()
     conn.close()
     return jsonify([dict(r) for r in ranks]), 200
 
-# Adicionando o restante das rotas conforme necessário...
+@api_bp.route('/generate-rules', methods=['POST'])
+def generate_rules():
+    data = request.json
+    if not data:
+        return jsonify({'error': 'JSON payload is missing.'}), 400
+    prompt_usuario = data.get('prompt', '')
+    if not prompt_usuario:
+        return jsonify({'error': 'O campo prompt é obrigatório.'}), 400
+    try:
+        if not client:
+            return jsonify({'error': 'A chave da API do Gemini não está configurada no Vercel.'}), 500
+        
+        system_prompt = (
+            "Você é o Assistente de IA do Rank&Hub, uma inteligência de elite que gerencia rankings.\n"
+            "Sua tarefa é criar um ranking estruturado baseado no desejo do usuário.\n\n"
+            "Você DEVE retornar ESTRITAMENTE um JSON no formato:\n"
+            "{\n"
+            "    \"nome_ranking\": \"Nome criativo para o ranking\",\n"
+            "    \"descricao\": \"Uma descrição envolvente\",\n"
+            "    \"regras\": [\n"
+            "        { \"tipo_atividade\": \"Nome da Atividade\", \"valor_ponto\": 10, \"condicao_extra\": \"Opcional\" },\n"
+            "        { \"tipo_atividade\": \"Outra Atividade\", \"valor_ponto\": 25, \"condicao_extra\": \"Opcional\" }\n"
+            "    ]\n"
+            "}\n"
+        )
+        
+        full_prompt = f"{system_prompt}\n\nEntrada do usuário:\n{prompt_usuario}"
+        response = client.models.generate_content(
+            model='gemini-1.5-flash',
+            contents=full_prompt
+        )
+        result_text = response.text.strip()
+        
+        # Limpeza básica do markdown se a IA retornar
+        if result_text.startswith("```json"):
+            result_text = result_text[7:]
+        elif result_text.startswith("```"):
+            result_text = result_text[3:]
+        if result_text.endswith("```"):
+            result_text = result_text[:-3]
+            
+        json_result = json.loads(result_text.strip())
+        return jsonify(json_result), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/rankings/<int:ranking_id>', methods=['GET'])
+def get_ranking(ranking_id):
+    conn = get_db_connection()
+    ranking = db_execute(conn, 'SELECT * FROM hub_rankings WHERE id = ?', (ranking_id,)).fetchone()
+    conn.close()
+    if ranking: return jsonify(dict(ranking)), 200
+    return jsonify({'error': 'Ranking não encontrado'}), 404
+
+@api_bp.route('/rankings/<int:ranking_id>/tasks', methods=['GET', 'POST'])
+def handle_tasks(ranking_id):
+    conn = get_db_connection()
+    if request.method == 'POST':
+        data = request.json
+        db_execute(conn, "INSERT INTO hub_tarefas (ranking_id, nome, descricao, pontos) VALUES (?,?,?,?)",
+                    (ranking_id, data['nome'], data.get('descricao'), data.get('pontos', 10)))
+        conn.commit()
+        conn.close()
+        return jsonify({'status': 'success'}), 201
+    tasks = db_execute(conn, "SELECT * FROM hub_tarefas WHERE ranking_id = ?", (ranking_id,)).fetchall()
+    conn.close()
+    return jsonify([dict(t) for t in tasks]), 200
+
+@api_bp.route('/rankings/<int:ranking_id>/members', methods=['GET', 'POST'])
+def handle_members(ranking_id):
+    conn = get_db_connection()
+    if request.method == 'POST':
+        data = request.json
+        db_execute(conn, "INSERT INTO hub_membros (ranking_id, usuario_id, permissao) VALUES (?,?,'membro')", (ranking_id, data['usuario_id']))
+        conn.commit()
+        conn.close()
+        return jsonify({'status': 'success'}), 201
+    members = db_execute(conn, """
+        SELECT u.id, u.nome, u.email, u.foto_perfil as foto_url, m.permissao as role, m.pontos
+        FROM hub_membros m
+        JOIN hub_usuarios u ON m.usuario_id = u.id
+        WHERE m.ranking_id = ?
+    """, (ranking_id,)).fetchall()
+    conn.close()
+    return jsonify([dict(m) for m in members]), 200
+
+@api_bp.route('/rankings/<int:ranking_id>/leaderboard', methods=['GET'])
+def get_leaderboard(ranking_id):
+    conn = get_db_connection()
+    members = db_execute(conn, """
+        SELECT u.id, u.nome, m.pontos, u.foto_perfil as foto_url
+        FROM hub_membros m
+        JOIN hub_usuarios u ON m.usuario_id = u.id
+        WHERE m.ranking_id = ?
+        ORDER BY m.pontos DESC
+    """, (ranking_id,)).fetchall()
+    conn.close()
+    return jsonify([dict(m) for m in members]), 200
+
 app.register_blueprint(api_bp)
 
 if __name__ == '__main__':
