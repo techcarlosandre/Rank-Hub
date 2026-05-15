@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
+import { useAuth } from '@/contexts/AuthContext';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -27,6 +28,7 @@ const itemVariants: Variants = {
 import { getApiUrl } from '@/lib/api';
 
 export default function ProfilePage() {
+  const { user: authUser, updateUser } = useAuth();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -39,14 +41,20 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState('');
 
   useEffect(() => {
-    fetch(getApiUrl('/api/user'))
+    if (!authUser) return;
+    
+    fetch(getApiUrl(`/api/user?usuario_id=${authUser.id}`))
       .then(res => res.json())
       .then(data => {
         setUser(data);
         setPreviewUrl(data.foto_url);
         setLoading(false);
+      })
+      .catch(err => {
+        console.error("Erro ao buscar usuário:", err);
+        setLoading(false);
       });
-  }, []);
+  }, [authUser]);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -72,13 +80,13 @@ export default function ProfilePage() {
       if (selectedFile) {
         const formData = new FormData();
         formData.append('foto', selectedFile);
-        await fetch(getApiUrl('/api/user/avatar'), {
+        await fetch(getApiUrl(`/api/user/avatar?usuario_id=${authUser?.id}`), {
           method: 'POST',
           body: formData,
         });
       }
 
-      const response = await fetch(getApiUrl('/api/user'), {
+      const response = await fetch(getApiUrl(`/api/user?usuario_id=${authUser?.id}`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -93,7 +101,7 @@ export default function ProfilePage() {
       const result = await response.json();
 
       if (response.ok) {
-        window.dispatchEvent(new Event('userUpdated'));
+        updateUser(result); // Atualiza o contexto global
         setSuccess(true);
         setSelectedFile(null);
         setCurrentPassword('');

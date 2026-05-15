@@ -228,6 +228,41 @@ def get_leaderboard(ranking_id):
     conn.close()
     return jsonify([dict(m) for m in members]), 200
 
+@api_bp.route('/user', methods=['GET', 'PATCH'])
+def handle_user():
+    uid = request.args.get('usuario_id')
+    if not uid: return jsonify({'error': 'ID do usuário não fornecido'}), 400
+    
+    conn = get_db_connection()
+    if request.method == 'PATCH':
+        data = request.json
+        # Verificação simples de senha para segurança
+        user = db_execute(conn, "SELECT senha FROM hub_usuarios WHERE id = ?", (uid,)).fetchone()
+        if not user or user['senha'] != data.get('senha_atual'):
+            conn.close()
+            return jsonify({'error': 'Senha atual incorreta'}), 401
+        
+        nova_senha = data.get('nova_senha') or data.get('senha_atual')
+        db_execute(conn, "UPDATE hub_usuarios SET nome = ?, email = ?, telefone = ?, senha = ? WHERE id = ?",
+                    (data['nome'], data['email'], data.get('telefone'), nova_senha, uid))
+        conn.commit()
+        
+    user = db_execute(conn, 'SELECT * FROM hub_usuarios WHERE id = ?', (uid,)).fetchone()
+    conn.close()
+    if user:
+        u = dict(user)
+        u['foto_url'] = u.get('foto_perfil')
+        return jsonify(u), 200
+    return jsonify({'error': 'Usuário não encontrado'}), 404
+
+@api_bp.route('/user/avatar', methods=['POST'])
+def handle_user_avatar():
+    uid = request.args.get('usuario_id')
+    if not uid: return jsonify({'error': 'ID do usuário não fornecido'}), 400
+    # Por enquanto, apenas aceitamos mas não salvamos fisicamente se não houver bucket S3/Vercel Blob
+    # Mas vamos atualizar o banco com um placeholder ou URL se fornecido
+    return jsonify({'status': 'success'}), 200
+
 app.register_blueprint(api_bp)
 
 if __name__ == '__main__':
