@@ -24,6 +24,8 @@ const itemVariants: Variants = {
   }
 };
 
+import { getApiUrl } from '@/lib/api';
+
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -37,7 +39,7 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState('');
 
   useEffect(() => {
-    fetch('http://127.0.0.1:5000/api/user')
+    fetch(getApiUrl('/api/user'))
       .then(res => res.json())
       .then(data => {
         setUser(data);
@@ -70,13 +72,13 @@ export default function ProfilePage() {
       if (selectedFile) {
         const formData = new FormData();
         formData.append('foto', selectedFile);
-        await fetch('http://127.0.0.1:5000/api/user/avatar', {
+        await fetch(getApiUrl('/api/user/avatar'), {
           method: 'POST',
           body: formData,
         });
       }
 
-      const response = await fetch('http://127.0.0.1:5000/api/user', {
+      const response = await fetch(getApiUrl('/api/user'), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

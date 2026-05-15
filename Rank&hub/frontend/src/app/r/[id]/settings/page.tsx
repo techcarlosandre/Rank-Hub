@@ -6,6 +6,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRankingTheme } from '@/contexts/RankingThemeContext';
 
+import { getApiUrl } from '@/lib/api';
+
 export default function SettingsPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { id } = use(params);
@@ -36,7 +38,7 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
   ];
 
   useEffect(() => {
-    fetch(`http://127.0.0.1:5000/api/rankings/${id}`)
+    fetch(getApiUrl(`/api/rankings/${id}`))
       .then(res => res.json())
       .then(data => {
         setRanking(data);
@@ -58,7 +60,7 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
   const handleSaveSettings = async () => {
     setIsUpdating(true);
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/rankings/${id}`, {
+      const res = await fetch(getApiUrl(`/api/rankings/${id}`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -98,7 +100,7 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
     formData.append('file', file);
 
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/rankings/${id}/upload-icon`, {
+      const res = await fetch(getApiUrl(`/api/rankings/${id}/upload-icon`), {
         method: 'POST',
         body: formData
       });
@@ -125,7 +127,7 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
   const handleDeleteRanking = async () => {
     setIsDeleting(true);
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/rankings/${id}`, {
+      const res = await fetch(getApiUrl(`/api/rankings/${id}`), {
         method: 'DELETE'
       });
       if (res.ok) {

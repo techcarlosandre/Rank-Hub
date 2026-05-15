@@ -21,6 +21,8 @@ interface Patent {
   cor_hex: string;
 }
 
+import { getApiUrl } from '@/lib/api';
+
 export default function MembersPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { user: currentUser } = useAuth();
@@ -44,9 +46,9 @@ export default function MembersPage({ params }: { params: Promise<{ id: string }
 
   const fetchData = () => {
     Promise.all([
-      fetch(`http://127.0.0.1:5000/api/rankings/${id}/members`),
-      fetch(`http://127.0.0.1:5000/api/rankings/${id}`),
-      fetch(`http://127.0.0.1:5000/api/rankings/${id}/patents`)
+      fetch(getApiUrl(`/api/rankings/${id}/members`)),
+      fetch(getApiUrl(`/api/rankings/${id}`)),
+      fetch(getApiUrl(`/api/rankings/${id}/patents`))
     ]).then(async ([mRes, rRes, pRes]) => {
       setMembers(await mRes.json());
       setRankingInfo(await rRes.json());
@@ -72,7 +74,7 @@ export default function MembersPage({ params }: { params: Promise<{ id: string }
     if (!inviteEmail) return;
     setIsInviting(true);
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/rankings/${id}/members`, {
+      const res = await fetch(getApiUrl(`/api/rankings/${id}/members`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: inviteEmail })
@@ -96,7 +98,7 @@ export default function MembersPage({ params }: { params: Promise<{ id: string }
     if (!editingMember) return;
     setIsSavingEdit(true);
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/rankings/${id}/members/${editingMember.id}`, {
+      const res = await fetch(getApiUrl(`/api/rankings/${id}/members/${editingMember.id}`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ apelido: editNickname, role: editRole })
@@ -117,7 +119,7 @@ export default function MembersPage({ params }: { params: Promise<{ id: string }
     if (!editingMember || !currentUser) return;
     setIsSavingEdit(true);
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/rankings/${id}/members/${editingMember.id}?requester_id=${currentUser.id}`, {
+      const res = await fetch(getApiUrl(`/api/rankings/${id}/members/${editingMember.id}?requester_id=${currentUser.id}`), {
         method: 'DELETE'
       });
       if (res.ok) {

@@ -197,16 +197,22 @@ def generate_rules():
         
         system_prompt = (
             "Você é o Assistente de IA do Rank&Hub, uma inteligência de elite que gerencia rankings.\n"
-            "Sua tarefa é criar um ranking estruturado baseado no desejo do usuário.\n\n"
+            "Sua tarefa é criar ou atualizar um ranking estruturado baseado no desejo do usuário.\n\n"
             "Você DEVE retornar ESTRITAMENTE um JSON no formato:\n"
             "{\n"
             "    \"nome_ranking\": \"Nome criativo para o ranking\",\n"
             "    \"descricao\": \"Uma descrição envolvente\",\n"
+            "    \"resumo\": \"Um resumo curto do que foi feito\",\n"
             "    \"regras\": [\n"
-            "        { \"tipo_atividade\": \"Nome da Atividade\", \"valor_ponto\": 10, \"condicao_extra\": \"Opcional\" },\n"
-            "        { \"tipo_atividade\": \"Outra Atividade\", \"valor_ponto\": 25, \"condicao_extra\": \"Opcional\" }\n"
+            "        { \"tipo_atividade\": \"Nome da Atividade\", \"valor_ponto\": 10, \"condicao_extra\": \"Opcional\" }\n"
+            "    ],\n"
+            "    \"acoes\": [\n"
+            "        { \"tipo\": \"ALTERAR\", \"dados\": { \"nome\": \"Novo Nome\", \"cor_tema_hex\": \"#hex\" } },\n"
+            "        { \"tipo\": \"REGRA\", \"dados\": { \"tipo_atividade\": \"Nome\", \"valor_ponto\": 10, \"condicao_extra\": \"...\" } },\n"
+            "        { \"tipo\": \"CONVIDAR\", \"dados\": { \"email\": \"exemplo@email.com\" } }\n"
             "    ]\n"
             "}\n"
+            "Importante: 'regras' é para novos rankings. 'acoes' é para atualizar rankings existentes. Preencha ambos de forma coerente."
         )
         
         full_prompt = f"{system_prompt}\n\nEntrada do usuário:\n{prompt_usuario}"

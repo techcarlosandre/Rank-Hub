@@ -1,3 +1,4 @@
+import { getApiUrl } from '@/lib/api';
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
@@ -14,7 +15,7 @@ export function RankingThemeProvider({ children, rankingId }: { children: React.
   const [accentColor, setAccentColor] = useState('#ff5528');
 
   const fetchTheme = () => {
-    fetch(`http://127.0.0.1:5000/api/rankings/${rankingId}`)
+    fetch(getApiUrl(`/api/rankings/${rankingId}`))
       .then(res => res.json())
       .then(data => {
         if (data.cor_tema_hex) {
@@ -63,3 +64,4 @@ export function useRankingTheme() {
   }
   return context;
 }
+

@@ -1,6 +1,7 @@
 'use client';
 
 import { use, useEffect, useState } from 'react';
+import { getApiUrl } from '@/lib/api';
 
 export default function HistoryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -8,7 +9,7 @@ export default function HistoryPage({ params }: { params: Promise<{ id: string }
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`http://127.0.0.1:5000/api/rankings/${id}/logs`)
+    fetch(getApiUrl(`/api/rankings/${id}/logs`))
       .then(res => res.json())
       .then(data => {
         setLogs(data);

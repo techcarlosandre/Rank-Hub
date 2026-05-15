@@ -13,6 +13,8 @@ interface Patent {
   cor_hex: string;
 }
 
+import { getApiUrl } from '@/lib/api';
+
 export default function CommunitySettingsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
@@ -45,8 +47,8 @@ export default function CommunitySettingsPage({ params }: { params: Promise<{ id
   const fetchData = async () => {
     try {
       const [rankRes, patentsRes] = await Promise.all([
-        fetch(`http://127.0.0.1:5000/api/rankings/${id}`),
-        fetch(`http://127.0.0.1:5000/api/rankings/${id}/patents`)
+        fetch(getApiUrl(`/api/rankings/${id}`)),
+        fetch(getApiUrl(`/api/rankings/${id}/patents`))
       ]);
       
       const rankData = await rankRes.json();
@@ -69,7 +71,7 @@ export default function CommunitySettingsPage({ params }: { params: Promise<{ id
   const handleSaveGeneral = async () => {
     setIsUpdating(true);
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/rankings/${id}`, {
+      const res = await fetch(getApiUrl(`/api/rankings/${id}`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -94,7 +96,7 @@ export default function CommunitySettingsPage({ params }: { params: Promise<{ id
   const handleAddPatent = async () => {
     if (!newPatentNome) return;
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/rankings/${id}/patents`, {
+      const res = await fetch(getApiUrl(`/api/rankings/${id}/patents`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -115,7 +117,7 @@ export default function CommunitySettingsPage({ params }: { params: Promise<{ id
 
   const handleDeletePatent = async (pId: number) => {
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/patents/${pId}`, { method: 'DELETE' });
+      const res = await fetch(getApiUrl(`/api/patents/${pId}`), { method: 'DELETE' });
       if (res.ok) fetchData();
     } catch (err) {
       console.error("Erro ao excluir patente:", err);

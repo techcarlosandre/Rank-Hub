@@ -1,3 +1,4 @@
+import { getApiUrl } from '@/lib/api';
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -29,7 +30,7 @@ export default function InvitesPage() {
   const fetchInvites = async () => {
     if (!user) return; // Proteção contra nulo
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/user/${user.id}/invites`);
+      const res = await fetch(getApiUrl(`/api/user/${user.id}/invites`));
       const data = await res.json();
       setInvites(data);
     } catch (err) {
@@ -43,7 +44,7 @@ export default function InvitesPage() {
     if (!user) return; // Proteção contra nulo
     setProcessingId(inviteId);
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/invites/${inviteId}/accept`, {
+      const res = await fetch(getApiUrl(`/api/invites/${inviteId}/accept`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuario_id: user.id })
@@ -62,7 +63,7 @@ export default function InvitesPage() {
   const handleRefuse = async (inviteId: number) => {
     setProcessingId(inviteId);
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/invites/${inviteId}/refuse`, {
+      const res = await fetch(getApiUrl(`/api/invites/${inviteId}/refuse`), {
         method: 'POST'
       });
       if (res.ok) {
@@ -151,3 +152,4 @@ export default function InvitesPage() {
     </div>
   );
 }
+

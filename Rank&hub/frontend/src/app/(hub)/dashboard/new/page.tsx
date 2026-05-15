@@ -36,7 +36,7 @@ export default function NewRankingPage() {
     
     try {
       console.log("Chamando API AI...");
-      const response = await fetch(getApiUrl('generate-rules'), {
+      const response = await fetch(getApiUrl('/api/generate-rules'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt })
@@ -50,7 +50,7 @@ export default function NewRankingPage() {
       }
       
       console.log("Enviando para criação de ranking...");
-      const saveRes = await fetch(getApiUrl('rankings'), {
+      const saveRes = await fetch(getApiUrl('/api/rankings'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
+import { getApiUrl } from '@/lib/api';
 
 interface Task {
   id: number;
@@ -37,11 +38,11 @@ export default function TasksPage({ params }: { params: Promise<{ id: string }> 
 
   const fetchData = async () => {
     try {
-      const tasksRes = await fetch(`http://127.0.0.1:5000/api/rankings/${id}/tasks?t=${Date.now()}`);
+      const tasksRes = await fetch(getApiUrl(`/api/rankings/${id}/tasks?t=${Date.now()}`));
       const tasksData = await tasksRes.json();
       
       if (user) {
-        const roleRes = await fetch(`http://127.0.0.1:5000/api/rankings/${id}/role?usuario_id=${user.id}`);
+        const roleRes = await fetch(getApiUrl(`/api/rankings/${id}/role?usuario_id=${user.id}`));
         const roleData = await roleRes.json();
         setMemberRole(roleData.role);
       }
@@ -63,7 +64,7 @@ export default function TasksPage({ params }: { params: Promise<{ id: string }> 
     setIsRegistering(taskId);
 
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/rankings/${id}/register`, {
+      const res = await fetch(getApiUrl(`/api/rankings/${id}/register`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuario_id: user.id, tarefa_id: taskId })
@@ -86,7 +87,7 @@ export default function TasksPage({ params }: { params: Promise<{ id: string }> 
     e.preventDefault();
     setIsCreating(true);
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/rankings/${id}/tasks`, {
+      const res = await fetch(getApiUrl(`/api/rankings/${id}/tasks`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
