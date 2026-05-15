@@ -26,7 +26,8 @@ gemini_api_key = os.getenv("GEMINI_API_KEY")
 client = None
 if gemini_api_key:
     try:
-        client = genai.Client(api_key=gemini_api_key, http_options={'api_version': 'v1'})
+        # v1beta is often required for the latest models in some SDK versions
+        client = genai.Client(api_key=gemini_api_key, http_options={'api_version': 'v1beta'})
     except Exception as e:
         print(f"Erro Gemini: {e}")
 
