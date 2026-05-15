@@ -14,7 +14,7 @@ export default function DashboardPage() {
   const fetchRankingsData = async () => {
     if (!user) return;
     try {
-      const res = await fetch(getApiUrl(`rankings?usuario_id=${user.id}`));
+      const res = await fetch(getApiUrl(`/api/rankings?usuario_id=${user.id}`));
       if (!res.ok) {
         throw new Error(`Erro ao buscar rankings: ${res.status}`);
       }
@@ -29,8 +29,8 @@ export default function DashboardPage() {
 
       const enrichedRankings = await Promise.all(rankings.map(async (r: any) => {
         const [logsRes, leaderRes] = await Promise.all([
-          fetch(getApiUrl(`rankings/${r.id}/logs`)),
-          fetch(getApiUrl(`rankings/${r.id}/leaderboard`))
+          fetch(getApiUrl(`/api/rankings/${r.id}/logs`)),
+          fetch(getApiUrl(`/api/rankings/${r.id}/leaderboard`))
         ]);
 
         return {
@@ -58,7 +58,7 @@ export default function DashboardPage() {
     if (!user) return;
     
     try {
-      const res = await fetch(getApiUrl(`rankings/${id}/favorite`), {
+      const res = await fetch(getApiUrl(`/api/rankings/${id}/favorite`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuario_id: user.id })

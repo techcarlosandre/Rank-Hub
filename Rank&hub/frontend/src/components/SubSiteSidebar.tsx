@@ -23,13 +23,13 @@ export default function SubSiteSidebar({ rankingId, themeColor = '#3b82f6' }: { 
 
   useEffect(() => {
     // Busca informações do ranking
-    fetch(getApiUrl(`rankings/${rankingId}?t=${Date.now()}`))
+    fetch(getApiUrl(`/api/rankings/${rankingId}?t=${Date.now()}`))
       .then(res => res.json())
       .then(data => setRankingInfo(data))
       .catch(err => console.error("Erro ao buscar ranking:", err));
 
     if (user) {
-      fetch(getApiUrl(`rankings/${rankingId}/role?usuario_id=${user.id}`))
+      fetch(getApiUrl(`/api/rankings/${rankingId}/role?usuario_id=${user.id}`))
         .then(res => res.json())
         .then(data => setUserRole(data.role))
         .catch(err => console.error("Erro ao buscar cargo:", err));
@@ -74,7 +74,7 @@ export default function SubSiteSidebar({ rankingId, themeColor = '#3b82f6' }: { 
   const handleFinalLeave = async () => {
     if (!user) return;
     try {
-      const res = await fetch(getApiUrl(`rankings/${rankingId}/members/${user.id}?requester_id=${user.id}`), {
+      const res = await fetch(getApiUrl(`/api/rankings/${rankingId}/members/${user.id}?requester_id=${user.id}`), {
         method: 'DELETE'
       });
       if (res.ok) {

@@ -15,7 +15,7 @@ export default function HubSidebar() {
 
   useEffect(() => {
     if (user) {
-      fetch(getApiUrl(`user/${user.id}/invites`))
+      fetch(getApiUrl(`/api/user/${user.id}/invites`))
         .then(res => res.json())
         .then(data => setInviteCount(data.length))
         .catch(err => console.error("Erro ao buscar convites:", err));

@@ -41,7 +41,7 @@ export default function ManualRankingPage() {
     setError(null);
     
     try {
-      const response = await fetch(getApiUrl('rankings'), {
+      const response = await fetch(getApiUrl('/api/rankings'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

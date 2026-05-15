@@ -27,8 +27,8 @@ export default function RankingPage({ params }: { params: Promise<{ id: string }
     const fetchData = async () => {
       try {
         const [rankRes, membersRes] = await Promise.all([
-          fetch(getApiUrl(`rankings/${id}?t=${Date.now()}`)),
-          fetch(getApiUrl(`rankings/${id}/leaderboard?t=${Date.now()}`))
+          fetch(getApiUrl(`/api/rankings/${id}?t=${Date.now()}`)),
+          fetch(getApiUrl(`/api/rankings/${id}/leaderboard?t=${Date.now()}`))
         ]);
         
         const rankData = await rankRes.json();
