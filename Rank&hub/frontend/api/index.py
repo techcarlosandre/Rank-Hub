@@ -21,13 +21,13 @@ except ImportError:
 load_dotenv()
 
 # Gemini Config
-from google import genai
+import google.generativeai as genai
 gemini_api_key = os.getenv("GEMINI_API_KEY")
-client = None
+model_gemini = None
 if gemini_api_key:
     try:
-        # Removendo versão fixa para deixar o SDK decidir a melhor (v1 ou v1beta)
-        client = genai.Client(api_key=gemini_api_key)
+        genai.configure(api_key=gemini_api_key)
+        model_gemini = genai.GenerativeModel('gemini-1.5-flash')
     except Exception as e:
         print(f"Erro Gemini: {e}")
 
@@ -193,7 +193,7 @@ def generate_rules():
     if not prompt_usuario:
         return jsonify({'error': 'O campo prompt é obrigatório.'}), 400
     try:
-        if not client:
+        if not model_gemini:
             return jsonify({'error': 'A chave da API do Gemini não está configurada no Vercel.'}), 500
         
         system_prompt = (
@@ -217,10 +217,7 @@ def generate_rules():
         )
         
         full_prompt = f"{system_prompt}\n\nEntrada do usuário:\n{prompt_usuario}"
-        response = client.models.generate_content(
-            model='gemini-1.5-flash-latest',
-            contents=full_prompt
-        )
+        response = model_gemini.generate_content(full_prompt)
         result_text = response.text.strip()
         
         # Limpeza básica do markdown se a IA retornar
