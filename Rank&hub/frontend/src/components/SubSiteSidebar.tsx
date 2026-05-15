@@ -96,7 +96,6 @@ export default function SubSiteSidebar({ rankingId, themeColor = '#3b82f6' }: { 
     { name: rankingInfo?.nome_membros || 'Membros', href: `/r/${rankingId}/members`, icon: '👥', private: false },
     { name: 'Histórico', href: `/r/${rankingId}/history`, icon: '📜', private: false },
     { name: 'Comunidade', href: `/r/${rankingId}/community`, icon: '🛡️', private: true },
-    { name: 'IA Assistente', href: `/r/${rankingId}/ai`, icon: '✨', private: true },
     { name: 'Configurações', href: `/r/${rankingId}/settings`, icon: '/img/Configuaracoes.png', private: true },
   ];
 

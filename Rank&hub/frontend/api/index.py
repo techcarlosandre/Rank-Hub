@@ -20,16 +20,6 @@ except ImportError:
 
 load_dotenv()
 
-# Gemini Config
-import google.generativeai as genai
-gemini_api_key = os.getenv("GEMINI_API_KEY")
-model_gemini = None
-if gemini_api_key:
-    try:
-        genai.configure(api_key=gemini_api_key)
-        model_gemini = genai.GenerativeModel('gemini-1.5-flash')
-    except Exception as e:
-        print(f"Erro Gemini: {e}")
 
 # Criamos um Blueprint para gerenciar o prefixo da Vercel
 api_bp = Blueprint('api_bp', __name__, url_prefix='/_/backend/api')
@@ -184,54 +174,6 @@ def handle_rankings():
     conn.close()
     return jsonify([dict(r) for r in ranks]), 200
 
-@api_bp.route('/generate-rules', methods=['POST'])
-def generate_rules():
-    data = request.json
-    if not data:
-        return jsonify({'error': 'JSON payload is missing.'}), 400
-    prompt_usuario = data.get('prompt', '')
-    if not prompt_usuario:
-        return jsonify({'error': 'O campo prompt é obrigatório.'}), 400
-    try:
-        if not model_gemini:
-            return jsonify({'error': 'A chave da API do Gemini não está configurada no Vercel.'}), 500
-        
-        system_prompt = (
-            "Você é o Assistente de IA do Rank&Hub, uma inteligência de elite que gerencia rankings.\n"
-            "Sua tarefa é criar ou atualizar um ranking estruturado baseado no desejo do usuário.\n\n"
-            "Você DEVE retornar ESTRITAMENTE um JSON no formato:\n"
-            "{\n"
-            "    \"nome_ranking\": \"Nome criativo para o ranking\",\n"
-            "    \"descricao\": \"Uma descrição envolvente\",\n"
-            "    \"resumo\": \"Um resumo curto do que foi feito\",\n"
-            "    \"regras\": [\n"
-            "        { \"tipo_atividade\": \"Nome da Atividade\", \"valor_ponto\": 10, \"condicao_extra\": \"Opcional\" }\n"
-            "    ],\n"
-            "    \"acoes\": [\n"
-            "        { \"tipo\": \"ALTERAR\", \"dados\": { \"nome\": \"Novo Nome\", \"cor_tema_hex\": \"#hex\" } },\n"
-            "        { \"tipo\": \"REGRA\", \"dados\": { \"tipo_atividade\": \"Nome\", \"valor_ponto\": 10, \"condicao_extra\": \"...\" } },\n"
-            "        { \"tipo\": \"CONVIDAR\", \"dados\": { \"email\": \"exemplo@email.com\" } }\n"
-            "    ]\n"
-            "}\n"
-            "Importante: 'regras' é para novos rankings. 'acoes' é para atualizar rankings existentes. Preencha ambos de forma coerente."
-        )
-        
-        full_prompt = f"{system_prompt}\n\nEntrada do usuário:\n{prompt_usuario}"
-        response = model_gemini.generate_content(full_prompt)
-        result_text = response.text.strip()
-        
-        # Limpeza básica do markdown se a IA retornar
-        if result_text.startswith("```json"):
-            result_text = result_text[7:]
-        elif result_text.startswith("```"):
-            result_text = result_text[3:]
-        if result_text.endswith("```"):
-            result_text = result_text[:-3]
-            
-        json_result = json.loads(result_text.strip())
-        return jsonify(json_result), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/rankings/<int:ranking_id>', methods=['GET'])
 def get_ranking(ranking_id):

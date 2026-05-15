@@ -221,9 +221,6 @@ export default function ManualRankingPage() {
             {loading ? 'Criando...' : 'Finalizar e Criar'}
           </motion.button>
           
-          <Link href="/dashboard/new" className="block text-center text-[10px] text-white/30 uppercase tracking-widest hover:text-white transition-colors">
-            Ou voltar para a IA
-          </Link>
         </form>
       </motion.div>
       </div>

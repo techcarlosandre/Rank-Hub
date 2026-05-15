@@ -86,31 +86,6 @@ export default function DashboardPage() {
   
   const allLogs = myRankings.flatMap(r => (r.logs || []).map((l: any) => ({ ...l, rankingNome: r.nome }))).sort((a, b) => new Date(b.criado_em).getTime() - new Date(a.criado_em).getTime());
 
-  const getAIMessage = () => {
-    if (!user) return "...";
-    const firstName = user.nome?.split(' ')[0] || 'Usuário';
-    
-    if (!hasFavorites) {
-      return `Olá, ${firstName}. Para análises táticas, favorite seus rankings principais!`;
-    }
-
-    if (favorites.length === 1) {
-      const r = favorites[0];
-      const leaderboard = r.leaderboard || [];
-      const myIdx = leaderboard.findIndex((m: any) => m.id === user.id);
-      if (myIdx === 0) return `Você é o soberano do ${r.nome}, ${firstName}. Continue assim!`;
-      const gap = (leaderboard[0].pontos || 0) - (leaderboard[myIdx]?.pontos || 0);
-      return `${firstName}, você está em #${myIdx + 1} no ${r.nome}. Faltam ${gap} pts para o topo.`;
-    }
-
-    // MENSAGEM MULTI-RANKING
-    const leadingIn = favorites.filter(r => r.leaderboard?.[0]?.id === user.id).length;
-    if (leadingIn === favorites.length) {
-      return `Dominação total, ${firstName}! Você lidera todos os seus rankings favoritos. Deseja criar um novo desafio com a IA?`;
-    }
-    
-    return `${firstName}, você está em disputa em ${favorites.length} frentes. Você lidera em ${leadingIn} delas. No ranking ${favorites.find(r => r.leaderboard?.[0]?.id !== user.id)?.nome}, há espaço para subir!`;
-  };
 
   if (loading && myRankings.length === 0) return (
     <div className="p-20 text-center space-y-4">
@@ -144,12 +119,12 @@ export default function DashboardPage() {
              <span className="text-[9px] font-black text-green-500/40 uppercase tracking-widest pb-1">Total de {myRankings.length} rankings</span>
           </div>
         </div>
-        <Link href="/dashboard/new" className="p-8 rounded-[2rem] bg-accent border border-accent/20 flex flex-col justify-between h-36 group overflow-hidden relative shadow-neon-accent hover:scale-[1.02] transition-all">
+        <Link href="/dashboard/new/manual" className="p-8 rounded-[2rem] bg-accent border border-accent/20 flex flex-col justify-between h-36 group overflow-hidden relative shadow-neon-accent hover:scale-[1.02] transition-all">
           <div className="relative z-10">
             <p className="text-[10px] font-black text-white/60 uppercase tracking-[0.2em]">Novos Horizontes</p>
-            <p className="text-3xl font-black text-white tracking-tighter uppercase italic mt-1">Criar com IA ✨</p>
+            <p className="text-3xl font-black text-white tracking-tighter uppercase italic mt-1">Criar Ranking</p>
           </div>
-          <span className="absolute -bottom-6 -right-6 text-8xl opacity-20 transform group-hover:scale-125 transition-transform duration-700">🤖</span>
+          <span className="absolute -bottom-6 -right-6 text-8xl opacity-20 transform group-hover:scale-125 transition-transform duration-700">🏆</span>
         </Link>
       </div>
 
@@ -244,15 +219,8 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Lateral: Assistente de IA & Atividade Global */}
+        {/* Lateral: Atividade Global */}
         <div className="space-y-8">
-           <div className="p-10 rounded-[3rem] bg-zinc-900 border border-white/5 relative overflow-hidden group">
-              <div className="absolute -right-10 -bottom-10 text-9xl opacity-5 group-hover:scale-125 transition-transform duration-700">🤖</div>
-              <h3 className="text-xl font-black text-white uppercase tracking-tighter mb-2 italic">Assistente de IA</h3>
-              <div className="h-1 w-10 bg-accent rounded-full mb-6" />
-              <p className="text-xs text-white/50 leading-relaxed mb-6 italic">"{getAIMessage()}"</p>
-              <button className="px-6 py-3 rounded-xl bg-white/5 text-[10px] font-black text-white uppercase tracking-widest hover:bg-accent transition-all">Ouvir Sugestões →</button>
-           </div>
 
            <div className="p-10 rounded-[3rem] bg-zinc-900 border border-white/5 space-y-8">
               <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 italic">📜 Mural Global de Atividade</h3>
