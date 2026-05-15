@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import { getApiUrl } from '@/lib/api';
+
 export default function MyRankingsPage() {
   const { user } = useAuth();
   const [rankings, setRankings] = useState<any[]>([]);
@@ -14,11 +16,11 @@ export default function MyRankingsPage() {
   const fetchRankingsWithMembers = async () => {
     if (!user) return;
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/rankings?usuario_id=${user.id}`);
+      const res = await fetch(getApiUrl(`/api/rankings?usuario_id=${user.id}`));
       const data = await res.json();
       
       const enriched = await Promise.all(data.map(async (ranking: any) => {
-        const leaderRes = await fetch(`http://127.0.0.1:5000/api/rankings/${ranking.id}/leaderboard`);
+        const leaderRes = await fetch(getApiUrl(`/api/rankings/${ranking.id}/leaderboard`));
         const leaderboard = await leaderRes.json();
         return { ...ranking, leaderboard };
       }));
@@ -49,7 +51,7 @@ export default function MyRankingsPage() {
     setRankings(prev => prev.map(r => r.id === id ? { ...r, favorito: isNowFavoriting ? 1 : 0 } : r));
 
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/rankings/${id}/favorite`, {
+      const res = await fetch(getApiUrl(`/api/rankings/${id}/favorite`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuario_id: user.id })

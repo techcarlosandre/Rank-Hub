@@ -4,6 +4,8 @@ import { useState, useEffect, use } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 
+import { getApiUrl } from '@/lib/api';
+
 interface Action {
   tipo: 'ALTERAR' | 'REGRA' | 'CONVIDAR';
   dados: any;
@@ -24,7 +26,7 @@ export default function AIPage({ params }: { params: Promise<{ id: string }> }) 
     const fetchRole = async () => {
       if (user) {
         try {
-          const res = await fetch(`http://127.0.0.1:5000/api/rankings/${id}/role?usuario_id=${user.id}`);
+          const res = await fetch(getApiUrl(`/api/rankings/${id}/role?usuario_id=${user.id}`));
           const data = await res.json();
           setMemberRole(data.role);
         } catch (err) {
@@ -50,7 +52,7 @@ export default function AIPage({ params }: { params: Promise<{ id: string }> }) 
     setLoading(true);
     setToast(null);
     try {
-      const res = await fetch('http://127.0.0.1:5000/api/generate-rules', {
+      const res = await fetch(getApiUrl('/api/generate-rules'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: `Assistente, no ranking ID ${id}: ${prompt}` })
@@ -75,14 +77,14 @@ export default function AIPage({ params }: { params: Promise<{ id: string }> }) 
     try {
       for (const action of suggestedActions) {
         if (action.tipo === 'ALTERAR') {
-          await fetch(`http://127.0.0.1:5000/api/rankings/${id}`, {
+          await fetch(getApiUrl(`/api/rankings/${id}`), {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(action.dados)
           });
         } 
         else if (action.tipo === 'REGRA') {
-          await fetch(`http://127.0.0.1:5000/api/rankings/${id}/tasks`, {
+          await fetch(getApiUrl(`/api/rankings/${id}/tasks`), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -95,7 +97,7 @@ export default function AIPage({ params }: { params: Promise<{ id: string }> }) 
           });
         }
         else if (action.tipo === 'CONVIDAR') {
-          await fetch(`http://127.0.0.1:5000/api/rankings/${id}/members`, {
+          await fetch(getApiUrl(`/api/rankings/${id}/members`), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
