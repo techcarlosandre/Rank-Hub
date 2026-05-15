@@ -26,8 +26,8 @@ gemini_api_key = os.getenv("GEMINI_API_KEY")
 client = None
 if gemini_api_key:
     try:
-        # v1beta is often required for the latest models in some SDK versions
-        client = genai.Client(api_key=gemini_api_key, http_options={'api_version': 'v1beta'})
+        # Removendo versão fixa para deixar o SDK decidir a melhor (v1 ou v1beta)
+        client = genai.Client(api_key=gemini_api_key)
     except Exception as e:
         print(f"Erro Gemini: {e}")
 
@@ -218,7 +218,7 @@ def generate_rules():
         
         full_prompt = f"{system_prompt}\n\nEntrada do usuário:\n{prompt_usuario}"
         response = client.models.generate_content(
-            model='gemini-1.5-flash',
+            model='gemini-1.5-flash-latest',
             contents=full_prompt
         )
         result_text = response.text.strip()
